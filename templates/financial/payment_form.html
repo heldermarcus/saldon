@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Pagamento | HM de Finanças{% endblock %}
+
+{% block content %}
+<article class="card" style="max-width: 600px; margin: 0 auto;">
+    <header>
+        <h2>Registrar Pagamento</h2>
+        <p>Cliente: {{ installment.sale.customer.name }} | Parcela {{ installment.installment_number }} (R$ {{ installment.amount }})</p>
+    </header>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div class="grid">
+            <a href="{% url 'installment_list' %}" role="button" class="outline secondary">Cancelar</a>
+            <button type="submit">Confirmar Pagamento</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

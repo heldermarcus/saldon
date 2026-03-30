@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Nova Transferência | HM de Finanças{% endblock %}
+
+{% block content %}
+<article class="card" style="max-width: 600px; margin: 0 auto;">
+    <header>
+        <h2>Transferência entre Contas</h2>
+        <p>Mova dinheiro do Caixa para o Pessoal (ou vice-versa).</p>
+    </header>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div class="grid">
+            <a href="{% url 'dashboard' %}" role="button" class="outline secondary">Cancelar</a>
+            <button type="submit">Salvar Transferência</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

@@ -26,9 +26,37 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
         if store:
-            context['pf_account'] = store.accounts.filter(account_type='PF').first()
-            context['pj_account'] = store.accounts.filter(account_type='PJ').first()
-            # To-do F003 context data
+            pf_acc = store.accounts.filter(account_type='PF').first()
+            pj_acc = store.accounts.filter(account_type='PJ').first()
+            context['pf_account'] = pf_acc
+            context['pj_account'] = pj_acc
+            
+            # F003 / F010: "Quanto posso gastar hoje?"
+            can_spend_today = 0
+            if pj_acc:
+                from financial.models import FixedCost, SpendingSettings
+                from django.db.models import Sum
+                from decimal import Decimal
+
+                fixed_costs_sum = FixedCost.objects.filter(account=pj_acc, is_active=True).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+                
+                settings, _ = SpendingSettings.objects.get_or_create(account=pj_acc, defaults={'reserve_percentage': 10})
+                reserve_factor = settings.reserve_percentage / Decimal('100.00')
+                
+                # Formula: Saldo PJ - (Soma Custos Fixos)
+                # O restante sofre desconto da Reserva %
+                available_after_fixed = pj_acc.balance - fixed_costs_sum
+                
+                if available_after_fixed > 0:
+                    reserve_amount = available_after_fixed * reserve_factor
+                    can_spend_today = available_after_fixed - reserve_amount
+                    
+            context['can_spend_today'] = max(Decimal('0.00'), can_spend_today)
+
+            # F003: Inadimplentes Dashboard list
+            from financial.models import Customer
+            context['top_debtors'] = Customer.objects.filter(store=store, total_debt__gt=0).order_by('-total_debt')[:5]
+
         return context
 
 @login_required

@@ -149,7 +149,46 @@ class Transfer(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     transfer_type = models.CharField(max_length=20, choices=TRANSFER_TYPE_CHOICES)
     description = models.CharField(max_length=500)
-    date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
+# Signals
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from dateutil.relativedelta import relativedelta
+
+@receiver(post_save, sender=Sale)
+def create_sale_installments(sender, instance, created, **kwargs):
+    if created and instance.installments_count > 0:
+        installment_amount = instance.total_amount / instance.installments_count
+        for i in range(instance.installments_count):
+            due_date = instance.first_due_date + relativedelta(months=i)
+            SaleInstallment.objects.create(
+                sale=instance,
+                installment_number=i + 1,
+                amount=installment_amount,
+                due_date=due_date,
+                status='pending'
+            )
+
+@receiver(post_save, sender=Payment)
+def update_installment_and_sale(sender, instance, created, **kwargs):
+    if created:
+        installment = instance.installment
+        installment.status = 'paid'
+        installment.paid_date = instance.payment_date
+        installment.payment_method = instance.payment_method
+        installment.save()
+
+        sale = installment.sale
+        sale.paid_amount += instance.amount
+        sale.save() # This triggers Sale.save() which recalculates remaining_amount and status
+
+@receiver(post_save, sender=Sale)
+def update_customer_debt(sender, instance, created, **kwargs):
+    customer = instance.customer
+    from django.db.models import Sum
+    total = customer.sales.aggregate(Sum('remaining_amount'))['remaining_amount__sum'] or 0
+    if customer.total_debt != total:
+        customer.total_debt = total
+        customer.save(update_fields=['total_debt'])

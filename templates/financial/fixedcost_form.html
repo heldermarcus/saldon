@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Novo Custo Fixo | HM de Finanças{% endblock %}
+
+{% block content %}
+<article class="card" style="max-width: 600px; margin: 0 auto;">
+    <header>
+        <h2>Novo Custo Fixo</h2>
+        <p>Ex: Aluguel, Funcionários, Internet.</p>
+    </header>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div class="grid">
+            <a href="{% url 'fixedcost_list' %}" role="button" class="outline secondary">Cancelar</a>
+            <button type="submit">Salvar Custo Fixo</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

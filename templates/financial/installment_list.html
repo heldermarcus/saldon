@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Cobranças Pendentes | HM de Finanças{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Cobranças Pendentes</h1>
+    <p>Parcelas vencendo nos próximos 7 dias e atrasadas.</p>
+</header>
+
+<article class="card">
+    <table class="striped">
+        <thead>
+            <tr>
+                <th>Vencimento</th>
+                <th>Cliente</th>
+                <th>Parcela</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for install in installments %}
+            <tr>
+                <td>{{ install.due_date|date:"d/m/Y" }}</td>
+                <td>{{ install.sale.customer.name }}</td>
+                <td>{{ install.installment_number }} de {{ install.sale.installments_count }}</td>
+                <td>R$ {{ install.amount }}</td>
+                <td>
+                    {% if install.status == 'overdue' %}
+                        <span style="color:red;">Atrasado</span>
+                    {% else %}
+                        Pendente
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'payment_add' install.id %}" role="button" class="outline">Registrar Pgto</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">Nenhuma cobrança pendente para os próximos dias! 🎉</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endblock %}

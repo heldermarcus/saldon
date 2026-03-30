@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Venda Parcelada | HM de Finanças{% endblock %}
+
+{% block content %}
+<article class="card" style="max-width: 600px; margin: 0 auto;">
+    <header>
+        <h2>Nova Venda Parcelada</h2>
+        <p>Promissória, Cheque ou Crediário</p>
+    </header>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div class="grid">
+            <a href="{% url 'dashboard' %}" role="button" class="outline secondary">Cancelar</a>
+            <button type="submit">Salvar Venda</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

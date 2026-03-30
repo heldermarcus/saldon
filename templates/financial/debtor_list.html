@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Quem me deve | HM de Finanças{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Quem me deve</h1>
+    <p>Lista de clientes com saldo devedor. Total na praça: <strong>R$ {{ total_owed }}</strong></p>
+</header>
+
+<article class="card">
+    <table class="striped">
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Telefone</th>
+                <th>Total Devido</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in debtors %}
+            <tr>
+                <td>{{ customer.name }}</td>
+                <td>{{ customer.phone|default:"-" }}</td>
+                <td class="text-danger">R$ {{ customer.total_debt }}</td>
+                <td>
+                    <a href="https://wa.me/55{{ customer.phone|default:'' }}" target="_blank" role="button" class="outline">Cobrar WhatsApp</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Nenhum cliente devendo! 🎉</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endblock %}
