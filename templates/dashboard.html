@@ -2,69 +2,85 @@
 {% block title %}Dashboard | HM de Finanças{% endblock %}
 
 {% block content %}
-<header>
-    <h1>Olá, {{ user.username }}</h1>
-    <p>Resumo financeiro da loja.</p>
-</header>
-
-<div class="grid">
-    <article class="card text-center" style="border-left: 5px solid var(--pico-primary);">
-        <header>Conta Loja (PJ)</header>
-        <h2 style="margin-bottom: 0;">R$ {{ pj_account.balance|default:"0.00" }}</h2>
-        <small class="text-muted">{{ pj_account.name|default:"Caixa Loja" }}</small>
-    </article>
-    
-    <article class="card text-center" style="border-left: 5px solid #3b82f6;">
-        <header>Conta Pessoal (PF)</header>
-        <h2 style="margin-bottom: 0;">R$ {{ pf_account.balance|default:"0.00" }}</h2>
-        <small class="text-muted">{{ pf_account.name|default:"Pessoal" }}</small>
-    </article>
-</div>
-
-<!-- Quanto posso gastar hoje? -->
-<article class="card text-center" style="background-color: #f0fdf4; border-color: #bbf7d0;">
-    <h3>💸 Quanto posso gastar hoje?</h3>
-    <h1 class="text-success" style="font-size: 2.5rem;">R$ {{ can_spend_today|default:"0.00" }}</h1>
-    <p><small class="text-muted">Valor livre na conta PJ após descontar custos fixos e reserva de segurança.</small></p>
-    <a href="#" role="button" class="outline">Ver Cálculo Completo</a>
-</article>
-
-<!-- Botões Rápidos -->
-<div class="grid" style="margin-bottom: 2rem;">
-    <a href="#" role="button" style="background-color: var(--pico-ins-color); border-color: var(--pico-ins-color);">+ Nova Entrada (Venda)</a>
-    <a href="#" role="button" style="background-color: var(--pico-del-color); border-color: var(--pico-del-color);">- Nova Saída (Gasto)</a>
-</div>
-
-<div class="grid">
-    <div>
-        <article class="card">
-            <header>Inadimplência - Top 5 Devedores</header>
-            {% if top_debtors %}
-                <ul>
-                {% for customer in top_debtors %}
-                    <li>
-                        <strong>{{ customer.name }}</strong>: R$ {{ customer.total_debt }}
-                        <a href="#" style="float:right;">Cobrar</a>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>Nenhum cliente inadimplente no momento! 🎉</p>
-            {% endif %}
-            <footer>
-                <a href="#">Ver todos os devedores</a>
-            </footer>
-        </article>
+<div class="topbar">
+    <div class="page-title">
+        <h1>Dashboard</h1>
+        <p>Visão geral da sua operação financeira</p>
     </div>
     
     <div>
-        <article class="card">
-            <header>Últimas Movimentações (PJ)</header>
-            <p><small>Em breve: lista das últimas 5 transações...</small></p>
-            <footer>
-                <a href="#">Ver Relatório Mensal</a>
-            </footer>
-        </article>
+        <a href="{% url 'subscription' %}" class="btn-pro">
+            <span style="color:#f59e0b">🚀</span> Preencher plataforma + Ativar Pro
+        </a>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Caixa Loja (Dark) -->
+    <article class="dash-card card-dark">
+        <h3 class="dash-card-title">Saldo Conta Loja (PJ)</h3>
+        <p class="dash-card-value">R$ {{ pj_account.balance|default:"0.00" }}</p>
+        <p class="dash-card-subtitle">Caixa disponível no momento</p>
+    </article>
+    
+    <!-- Clientes (White) -->
+    <article class="dash-card">
+        <h3 class="dash-card-title" style="color: var(--text-muted)">Total de Clientes</h3>
+        <p class="dash-card-value" style="color: var(--text-main)">{{ total_customers|default:"0" }}</p>
+        <p class="dash-card-subtitle" style="color: var(--text-muted)">Registrados na loja</p>
+    </article>
+
+    <!-- Quanto posso gastar (Green) -->
+    <article class="dash-card card-green">
+        <h3 class="dash-card-title">Dinheiro Livre Hoje</h3>
+        <p class="dash-card-value">R$ {{ can_spend_today|default:"0.00" }}</p>
+        <p class="dash-card-subtitle">Após abater custos e fluxo reserva</p>
+    </article>
+
+    <!-- Valor Pendente (Orange) -->
+    <article class="dash-card card-orange">
+        <h3 class="dash-card-title">Valor Pendente</h3>
+        <p class="dash-card-value">R$ {{ total_pending|default:"0.00" }}</p>
+        <p class="dash-card-subtitle">Total a receber da praça</p>
+    </article>
+</div>
+
+<!-- Listagem Vermelha de Clientes em Atraso (Inspired by Mockup) -->
+<div class="overdue-section" style="margin-top: 2rem;">
+    <div class="overdue-header">
+        <div style="background:#fecaca; padding:6px; border-radius:50%; display:flex; color:#b91c1c;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <div>
+            <h3>Clientes Inadimplentes</h3>
+            <p>{{ top_debtors.count }} pessoas com débito na praça</p>
+        </div>
+        <div class="overdue-total">
+            R$ {{ total_pending|default:"0.00" }} <span style="font-size:0.8rem; font-weight:400; color:#991b1b;">Total pendente</span>
+        </div>
+    </div>
+
+    <div class="overdue-list">
+        {% for debtor in top_debtors %}
+        <div class="overdue-item">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="color: #ef4444; opacity: 0.7;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                </div>
+                <div class="overdue-info">
+                    <h4>{{ debtor.name }}</h4>
+                    <p>Débito na loja - Contato: {{ debtor.phone|default:"Não informado" }}</p>
+                </div>
+            </div>
+            <div class="overdue-amount">
+                R$ {{ debtor.total_debt }}
+            </div>
+        </div>
+        {% empty %}
+        <div style="text-align:center; color:#991b1b; padding: 2rem;">
+            Nenhum cliente inadimplente listado neste momento. 🎉
+        </div>
+        {% endfor %}
     </div>
 </div>
 

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Planos | HM de Finanças{% endblock %}
+
+{% block content %}
+<header class="text-center">
+    <h1>Escolha seu Plano</h1>
+    <p>Tenha acesso a alertas avançados WhatsApp e relatórios infinitos.</p>
+</header>
+
+<div class="grid">
+    <article class="card text-center">
+        <header><strong>Básico</strong></header>
+        <h2>R$ 29<small>/mês</small></h2>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>✅ Transações Ilimitadas</li>
+            <li>✅ Relatório de Devedores</li>
+            <li>❌ Cobrança WhatsApp Auto</li>
+        </ul>
+        <footer>
+            <a href="{% url 'create_checkout' 'basic' %}" role="button" class="outline">Assinar Básico</a>
+        </footer>
+    </article>
+    
+    <article class="card text-center" style="border-color: var(--pico-primary);">
+        <header style="background-color: var(--pico-primary); color: white;"><strong>Pro</strong></header>
+        <h2>R$ 49<small>/mês</small></h2>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>✅ Transações Ilimitadas</li>
+            <li>✅ Relatório de Devedores</li>
+            <li>✅ Cobrança WhatsApp Auto</li>
+        </ul>
+        <footer>
+            <a href="{% url 'create_checkout' 'pro' %}" role="button">Assinar Pro</a>
+        </footer>
+    </article>
+</div>
+{% endblock %}

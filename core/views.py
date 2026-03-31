@@ -53,9 +53,12 @@ class DashboardView(TemplateView):
                     
             context['can_spend_today'] = max(Decimal('0.00'), can_spend_today)
 
-            # F003: Inadimplentes Dashboard list
             from financial.models import Customer
-            context['top_debtors'] = Customer.objects.filter(store=store, total_debt__gt=0).order_by('-total_debt')[:5]
+            context['total_customers'] = Customer.objects.filter(store=store).count()
+            context['total_pending'] = Customer.objects.filter(store=store).aggregate(Sum('total_debt'))['total_debt__sum'] or Decimal('0.00')
+
+            # F003: Inadimplentes Dashboard list
+            context['top_debtors'] = Customer.objects.filter(store=store, total_debt__gt=0).order_by('-total_debt')
 
         return context
 
@@ -85,6 +88,93 @@ def onboarding_view(request):
             request.user.onboarding_completed = True
             request.user.save()
 
-            return redirect('dashboard')
-
     return render(request, 'onboarding.html')
+
+import os
+from django.urls import reverse
+from django.conf import settings
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@login_required
+def subscription_view(request):
+    return render(request, 'subscription.html')
+
+@login_required
+def create_checkout(request, plan):
+    if plan not in ['basic', 'pro']:
+        return redirect('subscription')
+    
+    price = 2900 if plan == 'basic' else 4900
+    plan_name = "Plano Básico HMF" if plan == 'basic' else "Plano PRO HMF"
+    
+    try:
+        from abacatepay import AbacatePay
+        abacate = AbacatePay(os.environ.get('ABACATEPAY_API_KEY'))
+        
+        # Build completion URL based on current host
+        host = request.get_host()
+        scheme = request.scheme
+        base_url = f"{scheme}://{host}"
+        
+        # AbacatePay SDK Pydantic regex rejects 127.0.0.1 and localhost.
+        if '127.0.0.1' in host or 'localhost' in host:
+            base_url = "https://hmfinancas-app.com"
+        
+        response = abacate.billing.create(
+            frequency="ONE_TIME", # "RECURRING" SDK support might vary, using ONE_TIME for MVP
+            methods=["PIX"],
+            products=[{
+                "name": plan_name,
+                "quantity": 1,
+                "price": price
+            }],
+            customer={
+                "name": request.user.username or request.user.email.split('@')[0],
+                "email": request.user.email
+            },
+            return_url=base_url + reverse('dashboard'),
+            completion_url=base_url + reverse('dashboard') + "?upgraded=true"
+        )
+        
+        # Save intent ID to user if needed, but for MVP we match email in webhook
+        request.user.abacatepay_subscription_id = response.data.id
+        request.user.save()
+        
+        return redirect(response.data.url)
+    except Exception as e:
+        print(f"AbacatePay error: {e}")
+        from django.contrib import messages
+        messages.error(request, "Erro ao gerar cobrança. Tente novamente.")
+        return redirect('subscription')
+
+@csrf_exempt
+def webhook_abacatepay(request):
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body)
+            # Simplest webhook handling for MVP
+            event = payload.get('event')
+            data = payload.get('data', {})
+            
+            if event == 'billing.paid':
+                billing_id = data.get('id')
+                # Find user by billing ID or email
+                from core.models import User
+                user = User.objects.filter(abacatepay_subscription_id=billing_id).first()
+                if not user:
+                    customer_email = data.get('customer', {}).get('email')
+                    if customer_email:
+                        user = User.objects.filter(email=customer_email).first()
+                
+                if user:
+                    amount = data.get('amount', 0)
+                    user.plan = 'pro' if amount > 3000 else 'basic'
+                    user.plan_status = 'active'
+                    user.save()
+                    
+            return HttpResponse(status=200)
+        except Exception as e:
+            return HttpResponse(status=400)
+    return HttpResponse(status=405)
