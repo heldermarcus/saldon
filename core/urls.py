@@ -8,5 +8,9 @@ urlpatterns = [
     path('subscription/', views.subscription_view, name='subscription'),
     path('checkout/<str:plan>/', views.create_checkout, name='create_checkout'),
     path('webhook/abacatepay/', views.webhook_abacatepay, name='webhook_abacatepay'),
-    path('switch-account/<str:type_code>/', views.switch_account_view, name='switch_account'),
+    # Configurações
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/category/add/', views.category_create_api, name='category_create'),
+    path('settings/category/<int:pk>/edit/', views.category_edit_api, name='category_edit'),
+    path('settings/category/<int:pk>/delete/', views.category_delete_api, name='category_delete'),
 ]

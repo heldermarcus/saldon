@@ -7,15 +7,9 @@ class Category(models.Model):
         ('income', 'Entrada'),
         ('expense', 'Saída'),
     )
-    ACCOUNT_TYPE_CHOICES = (
-        ('PF', 'PF'),
-        ('PJ', 'PJ'),
-        ('both', 'Ambas'),
-    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    account_type = models.CharField(max_length=4, choices=ACCOUNT_TYPE_CHOICES)
     is_fixed_cost = models.BooleanField(default=False)
     icon = models.CharField(max_length=50, null=True, blank=True)
     is_default = models.BooleanField(default=False)
@@ -24,12 +18,7 @@ class Category(models.Model):
         return self.name
 
 class Customer(models.Model):
-    ACCOUNT_TYPE_CHOICES = (
-        ('PF', 'PF'),
-        ('PJ', 'PJ'),
-    )
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='customers')
-    account_type = models.CharField(max_length=2, choices=ACCOUNT_TYPE_CHOICES, default='PJ')
     name = models.CharField(max_length=200, verbose_name="Nome")
     cpf = models.CharField(max_length=14, null=True, blank=True, verbose_name="CPF")
     phone = models.CharField(max_length=20, null=True, blank=True, verbose_name="Telefone")
@@ -93,12 +82,7 @@ class Sale(models.Model):
         ('paid', 'Pago'),
         ('overdue', 'Atrasado'),
     )
-    ACCOUNT_TYPE_CHOICES = (
-        ('PF', 'PF'),
-        ('PJ', 'PJ'),
-    )
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='sales')
-    account_type = models.CharField(max_length=2, choices=ACCOUNT_TYPE_CHOICES, default='PJ')
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='sales', verbose_name="Cliente")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Valor Total")
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -227,7 +211,6 @@ def update_customer_debt_on_delete(sender, instance, **kwargs):
 
 class TransactionHistory(models.Model):
     transaction_reference_id = models.IntegerField(verbose_name="ID da Transação Original")
-    account_type = models.CharField(max_length=4) # PF or PJ
     field_changed = models.CharField(max_length=100)
     old_value = models.TextField(null=True, blank=True)
     new_value = models.TextField(null=True, blank=True)

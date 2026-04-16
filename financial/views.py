@@ -17,10 +17,9 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from core.models import Account
-            form.fields['account'].queryset = Account.objects.filter(store=store, account_type=active_type)
+            form.fields['account'].queryset = Account.objects.filter(store=store)
         return form
 
     def form_valid(self, form):
@@ -37,11 +36,9 @@ class TransactionCreateView(LoginRequiredMixin, CreateView):
         # Transfer type logic will be handled later
         account.save()
         
-        active_type = self.request.session.get('active_account_type', 'PJ')
         from financial.models import TransactionHistory
         TransactionHistory.objects.create(
             transaction_reference_id=self.object.pk,
-            account_type=active_type,
             field_changed='Criação Inicial',
             old_value='-',
             new_value='Transação criada',
@@ -65,11 +62,10 @@ class TransactionListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if not store:
             return Transaction.objects.none()
             
-        qs = Transaction.objects.filter(account__store=store, account__account_type=active_type).order_by('-date', '-created_at')
+        qs = Transaction.objects.filter(account__store=store).order_by('-date', '-created_at')
         
         t_type = self.request.GET.get('type')
         if t_type:
@@ -100,9 +96,8 @@ class TransactionListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            context['categories'] = Category.objects.filter(Q(account_type=active_type) | Q(account_type='both'))
+            context['categories'] = Category.objects.all()
         
         context['search_params'] = self.request.GET
         return context
@@ -115,16 +110,14 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Transaction.objects.filter(account__store=store, account__account_type=active_type)
+        return Transaction.objects.filter(account__store=store)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from core.models import Account
-            form.fields['account'].queryset = Account.objects.filter(store=store, account_type=active_type)
+            form.fields['account'].queryset = Account.objects.filter(store=store)
         return form
 
     def form_valid(self, form):
@@ -137,14 +130,12 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
             old_account.balance += old_obj.amount
         old_account.save()
 
-        active_type = self.request.session.get('active_account_type', 'PJ')
         from financial.models import TransactionHistory
         for field in form.changed_data:
             old_val = getattr(old_obj, field)
             new_val = form.cleaned_data[field]
             TransactionHistory.objects.create(
                 transaction_reference_id=self.object.pk,
-                account_type=active_type,
                 field_changed=field,
                 old_value=str(old_val),
                 new_value=str(new_val),
@@ -170,8 +161,7 @@ class TransactionDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Transaction.objects.filter(account__store=store, account__account_type=active_type)
+        return Transaction.objects.filter(account__store=store)
 
     def form_valid(self, form):
         transaction = self.get_object()
@@ -182,11 +172,9 @@ class TransactionDeleteView(LoginRequiredMixin, DeleteView):
             account.balance += transaction.amount
         account.save()
 
-        active_type = self.request.session.get('active_account_type', 'PJ')
         from financial.models import TransactionHistory
         TransactionHistory.objects.create(
             transaction_reference_id=transaction.pk,
-            account_type=active_type,
             field_changed='Status',
             old_value='Ativa',
             new_value='Excluída',
@@ -201,11 +189,9 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def transaction_history_api(request, pk):
-    active_type = request.session.get('active_account_type', 'PJ')
     from financial.models import TransactionHistory
     logs = TransactionHistory.objects.filter(
-        transaction_reference_id=pk, 
-        account_type=active_type
+        transaction_reference_id=pk
     ).order_by('-edited_at')
     
     data = []
@@ -227,9 +213,8 @@ class CustomerListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            qs = Customer.objects.filter(store=store, account_type=active_type).prefetch_related('sales')
+            qs = Customer.objects.filter(store=store).prefetch_related('sales')
             q = self.request.GET.get('q')
             if q:
                 from django.db.models import Q
@@ -240,11 +225,10 @@ class CustomerListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            context['total_customers'] = Customer.objects.filter(store=store, account_type=active_type).count()
-            context['customers_clean'] = Customer.objects.filter(store=store, account_type=active_type, total_debt=0).count()
-            context['customers_debt'] = Customer.objects.filter(store=store, account_type=active_type, total_debt__gt=0).count()
+            context['total_customers'] = Customer.objects.filter(store=store).count()
+            context['customers_clean'] = Customer.objects.filter(store=store, total_debt=0).count()
+            context['customers_debt'] = Customer.objects.filter(store=store, total_debt__gt=0).count()
             context['search_query'] = self.request.GET.get('q', '')
         return context
 
@@ -257,7 +241,6 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         store = self.request.user.stores.first()
         form.instance.store = store
-        form.instance.account_type = self.request.session.get('active_account_type', 'PJ')
         return super().form_valid(form)
 
     def get_initial(self):
@@ -283,8 +266,7 @@ class CustomerUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('customer_list')
 
     def get_queryset(self):
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Customer.objects.filter(store=self.request.user.stores.first(), account_type=active_type)
+        return Customer.objects.filter(store=self.request.user.stores.first())
 
 class CustomerDeleteView(LoginRequiredMixin, DeleteView):
     model = Customer
@@ -292,8 +274,7 @@ class CustomerDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy('customer_list')
 
     def get_queryset(self):
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Customer.objects.filter(store=self.request.user.stores.first(), account_type=active_type)
+        return Customer.objects.filter(store=self.request.user.stores.first())
 
     def form_valid(self, form):
         customer = self.get_object()
@@ -311,9 +292,8 @@ class SaleListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            qs = Sale.objects.filter(store=store, account_type=active_type).order_by('-sale_date', '-created_at')
+            qs = Sale.objects.filter(store=store).order_by('-sale_date', '-created_at')
             q = self.request.GET.get('q')
             if q:
                 from django.db.models import Q
@@ -327,11 +307,10 @@ class SaleListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from django.db.models import Sum
-            context['total_sales'] = Sale.objects.filter(store=store, account_type=active_type).count()
-            context['total_to_receive'] = Sale.objects.filter(store=store, account_type=active_type).aggregate(Sum('remaining_amount'))['remaining_amount__sum'] or 0
+            context['total_sales'] = Sale.objects.filter(store=store).count()
+            context['total_to_receive'] = Sale.objects.filter(store=store).aggregate(Sum('remaining_amount'))['remaining_amount__sum'] or 0
             context['search_query'] = self.request.GET.get('q', '')
         return context
 
@@ -343,15 +322,13 @@ class SaleCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.store = self.request.user.stores.first()
-        form.instance.account_type = self.request.session.get('active_account_type', 'PJ')
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            form.fields['customer'].queryset = Customer.objects.filter(store=store, account_type=active_type)
+            form.fields['customer'].queryset = Customer.objects.filter(store=store)
         return form
 
     def get_initial(self):
@@ -390,8 +367,7 @@ class SaleUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('sale_list')
 
     def get_queryset(self):
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Sale.objects.filter(store=self.request.user.stores.first(), account_type=active_type)
+        return Sale.objects.filter(store=self.request.user.stores.first())
 
     def get_success_url(self):
         next_url = self.request.GET.get('next')
@@ -415,8 +391,7 @@ class SaleDeleteView(LoginRequiredMixin, DeleteView):
         return reverse_lazy('sale_list')
 
     def get_queryset(self):
-        active_type = self.request.session.get('active_account_type', 'PJ')
-        return Sale.objects.filter(store=self.request.user.stores.first(), account_type=active_type)
+        return Sale.objects.filter(store=self.request.user.stores.first())
 
     def form_valid(self, form):
         sale = self.get_object()
@@ -437,14 +412,12 @@ class InstallmentListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from django.utils import timezone
             import datetime
             limit_date = timezone.now().date() + datetime.timedelta(days=7)
             return SaleInstallment.objects.filter(
                 sale__store=store, 
-                sale__account_type=active_type,
                 status__in=['pending', 'overdue'],
                 due_date__lte=limit_date
             ).order_by('due_date')
@@ -487,9 +460,8 @@ class DebtorListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
-            return Customer.objects.filter(store=store, account_type=active_type, total_debt__gt=0).order_by('-total_debt')
+            return Customer.objects.filter(store=store, total_debt__gt=0).order_by('-total_debt')
         return Customer.objects.none()
 
     def get_context_data(self, **kwargs):
@@ -520,13 +492,12 @@ class TransferCreateView(LoginRequiredMixin, CreateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # restrict accounts to current store and active type
+        # restrict accounts to current store
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from core.models import Account
-            form.fields['from_account'].queryset = Account.objects.filter(store=store, account_type=active_type)
-            form.fields['to_account'].queryset = Account.objects.filter(store=store, account_type=active_type)
+            form.fields['from_account'].queryset = Account.objects.filter(store=store)
+            form.fields['to_account'].queryset = Account.objects.filter(store=store)
         return form
 
 class FixedCostListView(LoginRequiredMixin, ListView):
@@ -536,10 +507,9 @@ class FixedCostListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from core.models import Account
-            accounts = Account.objects.filter(store=store, account_type=active_type)
+            accounts = Account.objects.filter(store=store)
             return FixedCost.objects.filter(account__in=accounts)
         return FixedCost.objects.none()
 
@@ -552,10 +522,9 @@ class FixedCostCreateView(LoginRequiredMixin, CreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if store:
             from core.models import Account
-            form.fields['account'].queryset = Account.objects.filter(store=store, account_type=active_type)
+            form.fields['account'].queryset = Account.objects.filter(store=store)
             # Only expense categories
             form.fields['category'].queryset = Category.objects.filter(type='expense')
         return form
@@ -579,7 +548,6 @@ class EvolucaoView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
-        active_type = self.request.session.get('active_account_type', 'PJ')
         if not store:
             return context
             
@@ -596,14 +564,12 @@ class EvolucaoView(LoginRequiredMixin, TemplateView):
             from collections import defaultdict
             val_previsto = SaleInstallment.objects.filter(
                 sale__store=store,
-                sale__account_type=active_type,
                 due_date__range=[start_date, end_date]
             ).aggregate(Sum('amount'))['amount__sum'] or 0
             
             # Realizado: Income transactions completed within this month
             val_realizado = Transaction.objects.filter(
                 account__store=store,
-                account__account_type=active_type,
                 type='income',
                 date__range=[start_date, end_date]
             ).aggregate(Sum('amount'))['amount__sum'] or 0
@@ -617,7 +583,7 @@ class EvolucaoView(LoginRequiredMixin, TemplateView):
         
         # Monthly Cards Calculation
         context['mes_atual'] = MONTH_FULL[today.month]
-        context['clientes_ativos'] = Customer.objects.filter(store=store, account_type=active_type, total_debt__gt=0).count()
+        context['clientes_ativos'] = Customer.objects.filter(store=store, total_debt__gt=0).count()
         context['receita_prevista'] = previsto[-1] if previsto else 0
         
         # Evolução do realizado em percentual

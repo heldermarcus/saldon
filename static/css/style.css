@@ -12,6 +12,7 @@
     
     /* Brand Colors */
     --primary: #3b82f6;
+    --primary-dark: #2563eb;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -21,6 +22,8 @@
     --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --radius-lg: 16px;
     --radius-md: 12px;
+
+    --bottom-nav-height: 64px;
 }
 
 body {
@@ -29,17 +32,20 @@ body {
     color: var(--text-main);
     margin: 0;
     padding: 0;
-    /* Reset PicoCSS default margin that messes up full height */
     padding-top: 0 !important;
 }
 
-/* Base Layout Structure */
+/* =======================================
+   BASE LAYOUT
+   ======================================= */
 .app-container {
     display: flex;
     min-height: 100vh;
 }
 
-/* Sidebar Styling */
+/* =======================================
+   SIDEBAR (Desktop)
+   ======================================= */
 .sidebar {
     width: 260px;
     background-color: var(--sidebar-bg);
@@ -50,6 +56,7 @@ body {
     height: 100vh;
     position: sticky;
     top: 0;
+    z-index: 50;
 }
 
 .sidebar-header {
@@ -70,11 +77,12 @@ body {
     justify-content: center;
     font-weight: bold;
     font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
 .sidebar-title {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     line-height: 1.2;
 }
@@ -87,6 +95,7 @@ body {
 .sidebar-nav {
     flex: 1;
     padding: 1rem 0;
+    overflow-y: auto;
 }
 
 .sidebar-menu-title {
@@ -101,13 +110,18 @@ body {
 .sidebar-link {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1.5rem;
+    padding: 0.7rem 1.5rem;
     color: #cbd5e1;
     text-decoration: none;
     transition: all 0.2s;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     border-left: 3px solid transparent;
+    gap: 12px;
+}
+
+.sidebar-link svg {
+    flex-shrink: 0;
 }
 
 .sidebar-link:hover, .sidebar-link.active {
@@ -125,11 +139,14 @@ body {
     border-top: 1px solid var(--sidebar-hover);
 }
 
-/* Main Content Area */
+/* =======================================
+   MAIN CONTENT
+   ======================================= */
 .main-content {
     flex: 1;
     padding: 2rem;
     overflow-y: auto;
+    min-width: 0; /* Prevent flex overflow */
 }
 
 .topbar {
@@ -137,6 +154,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .page-title h1 {
@@ -152,7 +171,51 @@ body {
     font-size: 0.9rem;
 }
 
-/* Action Buttons Overlay */
+/* =======================================
+   QUICK ACTIONS BAR (Dashboard)
+   ======================================= */
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.quick-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.quick-action-btn.income {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.quick-action-btn.income:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.quick-action-btn.expense {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.quick-action-btn.expense:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* Action Buttons (Pro/Upgrade) */
 .btn-pro {
     background-color: white;
     color: var(--text-main);
@@ -173,7 +236,9 @@ body {
     background-color: #f1f5f9;
 }
 
-/* Dashboard Cards Grid */
+/* =======================================
+   DASHBOARD CARDS
+   ======================================= */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -243,7 +308,9 @@ body {
 }
 .card-orange .dash-card-title { color: #fef3c7; }
 
-/* Overdue List Styling */
+/* =======================================
+   OVERDUE / DEBTORS SECTION
+   ======================================= */
 .overdue-section {
     background-color: var(--danger-light);
     border: 1px solid var(--danger-border);
@@ -256,6 +323,7 @@ body {
     align-items: center;
     gap: 12px;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap;
 }
 
 .overdue-header h3 {
@@ -321,7 +389,7 @@ body {
     color: var(--danger);
 }
 
-/* Custom Scrollbar for overdue list */
+/* Custom Scrollbar */
 .overdue-list::-webkit-scrollbar {
     width: 6px;
 }
@@ -333,3 +401,190 @@ body {
     background: #fca5a5;
     border-radius: 10px;
 }
+
+
+/* =======================================
+   BOTTOM NAVIGATION (Mobile)
+   ======================================= */
+.bottom-nav {
+    display: none; /* Hidden on desktop */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: white;
+    border-top: 1px solid var(--border-color);
+    z-index: 90;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.bottom-nav-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 8px;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 6px 0;
+    transition: color 0.2s;
+    min-width: 48px;
+}
+
+.bottom-nav-item.active {
+    color: var(--primary);
+}
+
+.bottom-nav-item svg {
+    width: 22px;
+    height: 22px;
+}
+
+.bottom-nav-item span {
+    line-height: 1;
+}
+
+/* =======================================
+   MOBILE RESPONSIVE
+   ======================================= */
+@media (max-width: 768px) {
+    /* Hide sidebar */
+    .sidebar {
+        display: none;
+    }
+
+    /* Show bottom nav */
+    .bottom-nav {
+        display: block;
+    }
+
+    /* Content takes full width + bottom padding for nav */
+    .main-content {
+        padding: 1rem;
+        padding-bottom: calc(var(--bottom-nav-height) + 1.5rem);
+    }
+
+    /* Adjust FAB position above bottom nav */
+    .fab-container {
+        bottom: calc(var(--bottom-nav-height) + 16px);
+        right: 16px;
+    }
+
+    /* Dashboard grid */
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .dash-card {
+        min-height: 100px;
+        padding: 1rem;
+    }
+
+    .dash-card-value {
+        font-size: 1.4rem;
+    }
+
+    .dash-card-title {
+        font-size: 0.75rem;
+    }
+
+    .dash-card-subtitle {
+        font-size: 0.65rem;
+    }
+
+    /* Page title */
+    .page-title h1 {
+        font-size: 1.3rem;
+    }
+
+    .page-title p {
+        font-size: 0.8rem;
+    }
+
+    .topbar {
+        margin-bottom: 1rem;
+    }
+
+    /* Quick actions */
+    .quick-actions {
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .quick-action-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Charts */
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Tables */
+    .dash-card table {
+        font-size: 0.85rem;
+    }
+
+    /* Overdue section */
+    .overdue-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .overdue-total {
+        margin-left: 0;
+    }
+
+    .overdue-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    /* Hide upgrade btn on mobile */
+    .btn-pro {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+    }
+
+    .quick-action-btn {
+        width: 100%;
+    }
+}
+
+/* =======================================
+   UTILITY CLASSES
+   ======================================= */
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.text-warning { color: var(--warning); }
+.text-muted { color: var(--text-muted); }
+.text-center { text-align: center; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }

@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from django.utils.decorators import method_decorator
+from django.http import JsonResponse
+from django.db import models
 from core.models import Store, Account
 from financial.models import Category
 
@@ -26,17 +28,11 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         store = self.request.user.stores.first()
         
-        # Leitura da sessão para PF/PJ
-        active_account_type = self.request.session.get('active_account_type', 'PJ')
-        context['active_account_type'] = active_account_type
-        
         if not store:
             return context
 
-        pf_acc = store.accounts.filter(account_type='PF').first()
-        pj_acc = store.accounts.filter(account_type='PJ').first()
-        context['pf_account'] = pf_acc
-        context['pj_account'] = pj_acc
+        account = store.accounts.first()
+        context['account'] = account
         
         from financial.models import Customer, Transaction, Sale, FixedCost, SpendingSettings
         from decimal import Decimal
@@ -49,91 +45,55 @@ class DashboardView(TemplateView):
         start_date, end_date = get_month_range(today)
         context['mes_atual'] = MONTH_FULL[today.month]
 
-        if active_account_type == 'PJ':
-            # === DADOS PJ (Negócio) ===
-            can_spend_today = Decimal('0.00')
-            if pj_acc:
-                fixed_costs_sum = FixedCost.objects.filter(account=pj_acc, is_active=True).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-                settings, _ = SpendingSettings.objects.get_or_create(account=pj_acc, defaults={'reserve_percentage': 10})
-                reserve_factor = settings.reserve_percentage / Decimal('100.00')
-                available_after_fixed = pj_acc.balance - fixed_costs_sum
-                if available_after_fixed > 0:
-                    reserve_amount = available_after_fixed * reserve_factor
-                    can_spend_today = available_after_fixed - reserve_amount
-            context['can_spend_today'] = max(Decimal('0.00'), can_spend_today)
+        # Dashboard metrics
+        can_spend_today = Decimal('0.00')
+        if account:
+            fixed_costs_sum = FixedCost.objects.filter(account=account, is_active=True).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+            settings, _ = SpendingSettings.objects.get_or_create(account=account, defaults={'reserve_percentage': 10})
+            reserve_factor = settings.reserve_percentage / Decimal('100.00')
+            available_after_fixed = account.balance - fixed_costs_sum
+            if available_after_fixed > 0:
+                reserve_amount = available_after_fixed * reserve_factor
+                can_spend_today = available_after_fixed - reserve_amount
+        context['can_spend_today'] = max(Decimal('0.00'), can_spend_today)
 
-            context['total_customers'] = Customer.objects.filter(store=store, account_type='PJ').count()
-            context['total_pending'] = Customer.objects.filter(store=store, account_type='PJ').aggregate(Sum('total_debt'))['total_debt__sum'] or Decimal('0.00')
-            context['top_debtors'] = Customer.objects.filter(store=store, account_type='PJ', total_debt__gt=0).order_by('-total_debt')
-            
-            # Gráficos
-            labels, realizado = [], []
-            for i in range(5, -1, -1):
-                target_date = today.replace(day=1) - datetime.timedelta(days=30*i)
-                m_start, m_end = get_month_range(target_date)
-                labels.append(f"{MONTH_ABBR[m_start.month]}")
-                val_realizado = Transaction.objects.filter(
-                    account=pj_acc, type='income', date__range=[m_start, m_end]
-                ).aggregate(Sum('amount'))['amount__sum'] or 0
-                realizado.append(float(val_realizado))
-            context['line_labels'] = labels
-            context['line_data'] = realizado
-            
-            expenses = Transaction.objects.filter(
-                account=pj_acc, type='expense', date__range=[start_date, end_date]
-            ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
-            
-            pie_labels, pie_data = [], []
-            for exp in expenses:
-                if exp['category__name']:
-                    pie_labels.append(exp['category__name'])
-                    pie_data.append(float(exp['total']))
-            if not pie_labels:
-                pie_labels, pie_data = ['Sem despesas pendentes'], [1]
-            context['pie_labels'] = pie_labels
-            context['pie_data'] = pie_data
-            
-            total_in = Transaction.objects.filter(account=pj_acc, type='income', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or 0
-            total_out = sum(pie_data) if pie_data != [1] else 0
-            context['lucro_liquido'] = total_in - total_out
-            
-            customers_with_sales = Sale.objects.filter(store=store, account_type='PJ').values('customer').distinct().count()
-            context['ticket_medio'] = total_in / customers_with_sales if customers_with_sales > 0 else 0
-
-        else:
-            # === DADOS PF (Pessoal) ===
-            val_in = Transaction.objects.filter(account=pf_acc, type='income', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-            val_out = Transaction.objects.filter(account=pf_acc, type='expense', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-            
-            context['pf_receitas_mes'] = val_in
-            context['pf_despesas_mes'] = val_out
-            context['pf_saldo_mes'] = val_in - val_out
-            
-            labels, realizado = [], []
-            for i in range(5, -1, -1):
-                target_date = today.replace(day=1) - datetime.timedelta(days=30*i)
-                m_start, m_end = get_month_range(target_date)
-                labels.append(f"{MONTH_ABBR[m_start.month]}")
-                v = Transaction.objects.filter(
-                    account=pf_acc, type='income', date__range=[m_start, m_end]
-                ).aggregate(Sum('amount'))['amount__sum'] or 0
-                realizado.append(float(v))
-            context['line_labels'] = labels
-            context['line_data'] = realizado
-            
-            expenses = Transaction.objects.filter(
-                account=pf_acc, type='expense', date__range=[start_date, end_date]
-            ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
-            
-            pie_labels, pie_data = [], []
-            for exp in expenses:
-                if exp['category__name']:
-                    pie_labels.append(exp['category__name'])
-                    pie_data.append(float(exp['total']))
-            if not pie_labels:
-                pie_labels, pie_data = ['Sem despesas pessoais'], [1]
-            context['pie_labels'] = pie_labels
-            context['pie_data'] = pie_data
+        context['total_customers'] = Customer.objects.filter(store=store).count()
+        context['total_pending'] = Customer.objects.filter(store=store).aggregate(Sum('total_debt'))['total_debt__sum'] or Decimal('0.00')
+        context['top_debtors'] = Customer.objects.filter(store=store, total_debt__gt=0).order_by('-total_debt')
+        
+        # Gráficos
+        labels, realizado = [], []
+        for i in range(5, -1, -1):
+            target_date = today.replace(day=1) - datetime.timedelta(days=30*i)
+            m_start, m_end = get_month_range(target_date)
+            labels.append(f"{MONTH_ABBR[m_start.month]}")
+            val_realizado = Transaction.objects.filter(
+                account=account, type='income', date__range=[m_start, m_end]
+            ).aggregate(Sum('amount'))['amount__sum'] or 0
+            realizado.append(float(val_realizado))
+        context['line_labels'] = labels
+        context['line_data'] = realizado
+        
+        expenses = Transaction.objects.filter(
+            account=account, type='expense', date__range=[start_date, end_date]
+        ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
+        
+        pie_labels, pie_data = [], []
+        for exp in expenses:
+            if exp['category__name']:
+                pie_labels.append(exp['category__name'])
+                pie_data.append(float(exp['total']))
+        if not pie_labels:
+            pie_labels, pie_data = ['Sem despesas pendentes'], [1]
+        context['pie_labels'] = pie_labels
+        context['pie_data'] = pie_data
+        
+        total_in = Transaction.objects.filter(account=account, type='income', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or 0
+        total_out = sum(pie_data) if pie_data != [1] else 0
+        context['lucro_liquido'] = total_in - total_out
+        
+        customers_with_sales = Sale.objects.filter(store=store).values('customer').distinct().count()
+        context['ticket_medio'] = total_in / customers_with_sales if customers_with_sales > 0 else 0
 
         return context
 
@@ -147,18 +107,15 @@ def onboarding_view(request):
         if store_name:
             store, _ = Store.objects.get_or_create(user=request.user, name=store_name)
             
-            # Create PF and PJ accounts
-            Account.objects.get_or_create(store=store, account_type='PF', defaults={'name': f'Pessoal {request.user.username}'})
-            Account.objects.get_or_create(store=store, account_type='PJ', defaults={'name': 'Caixa Loja'})
+            # Create single account for the store
+            Account.objects.get_or_create(store=store, defaults={'name': 'Caixa Loja'})
 
             # Create default categories if they don't exist
-            Category.objects.get_or_create(name='Vendas', type='income', account_type='PJ', is_default=True)
-            Category.objects.get_or_create(name='Salário/Pró-labore', type='income', account_type='PF', is_default=True)
-            Category.objects.get_or_create(name='Fornecedor', type='expense', account_type='PJ', is_default=True)
-            Category.objects.get_or_create(name='Aluguel', type='expense', account_type='PJ', is_fixed_cost=True, is_default=True)
-            Category.objects.get_or_create(name='Luz/Água', type='expense', account_type='PJ', is_fixed_cost=True, is_default=True)
-            Category.objects.get_or_create(name='Funcionário', type='expense', account_type='PJ', is_fixed_cost=True, is_default=True)
-            Category.objects.get_or_create(name='Pessoal', type='expense', account_type='PF', is_default=True)
+            Category.objects.get_or_create(name='Vendas', type='income', is_default=True)
+            Category.objects.get_or_create(name='Fornecedor', type='expense', is_default=True)
+            Category.objects.get_or_create(name='Aluguel', type='expense', is_fixed_cost=True, is_default=True)
+            Category.objects.get_or_create(name='Luz/Água', type='expense', is_fixed_cost=True, is_default=True)
+            Category.objects.get_or_create(name='Funcionário', type='expense', is_fixed_cost=True, is_default=True)
 
             request.user.onboarding_completed = True
             request.user.save()
@@ -378,14 +335,137 @@ def webhook_abacatepay(request):
         logger.exception(f"Webhook AbacatePay erro: {e}")
         return HttpResponse(status=400)
 
+
+# ==========================================
+#  MÓDULO DE CONFIGURAÇÕES
+# ==========================================
+
 @login_required
-def switch_account_view(request, type_code):
-    if type_code in ['PF', 'PJ']:
-        request.session['active_account_type'] = type_code
-    
-    # Redirecionar de volta para a mesma página, fallback dashboard
-    next_url = request.GET.get('next')
-    from django.urls import resolve
-    if not next_url:
-        next_url = reverse('dashboard')
-    return redirect(next_url)
+def settings_view(request):
+    store = request.user.stores.first()
+    from core.forms import StoreForm, ProfileForm
+    from django.contrib import messages
+
+    # Inicializar formulários
+    store_form = StoreForm(instance=store) if store else StoreForm()
+    profile_form = ProfileForm(instance=request.user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'save_store':
+            store_form = StoreForm(request.POST, instance=store)
+            if store_form.is_valid():
+                saved_store = store_form.save(commit=False)
+                saved_store.user = request.user
+                saved_store.save()
+                messages.success(request, "Dados da loja salvos com sucesso!")
+                return redirect('settings')
+
+        elif action == 'save_profile':
+            profile_form = ProfileForm(request.POST, instance=request.user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Perfil atualizado com sucesso!")
+                return redirect('settings')
+
+        elif action == 'change_password':
+            from django.contrib.auth import update_session_auth_hash
+            current_pw = request.POST.get('current_password')
+            new_pw = request.POST.get('new_password')
+            confirm_pw = request.POST.get('confirm_password')
+
+            if not request.user.check_password(current_pw):
+                messages.error(request, "Senha atual incorreta.")
+            elif new_pw != confirm_pw:
+                messages.error(request, "As senhas não coincidem.")
+            elif len(new_pw) < 8:
+                messages.error(request, "A nova senha deve ter pelo menos 8 caracteres.")
+            else:
+                request.user.set_password(new_pw)
+                request.user.save()
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "Senha alterada com sucesso!")
+            return redirect('settings')
+
+    # Categorias do usuário
+    categories = Category.objects.filter(
+        models.Q(user=request.user) | models.Q(is_default=True)
+    ).order_by('type', 'name')
+
+    context = {
+        'store_form': store_form,
+        'profile_form': profile_form,
+        'categories': categories,
+        'store': store,
+    }
+    return render(request, 'settings.html', context)
+
+
+@login_required
+def category_create_api(request):
+    """Criar categoria via AJAX."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'msg': 'Método não permitido'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    cat_type = request.POST.get('type', 'expense')
+    if not name:
+        return JsonResponse({'status': 'error', 'msg': 'Nome é obrigatório'})
+
+    cat = Category.objects.create(
+        user=request.user,
+        name=name,
+        type=cat_type,
+        is_default=False
+    )
+    return JsonResponse({
+        'status': 'ok',
+        'id': cat.id,
+        'name': cat.name,
+        'type': cat.get_type_display(),
+        'type_raw': cat.type
+    })
+
+
+@login_required
+def category_edit_api(request, pk):
+    """Editar categoria via AJAX."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'msg': 'Método não permitido'}, status=405)
+
+    try:
+        cat = Category.objects.get(pk=pk, user=request.user, is_default=False)
+    except Category.DoesNotExist:
+        return JsonResponse({'status': 'error', 'msg': 'Categoria não encontrada ou não editável'})
+
+    name = request.POST.get('name', '').strip()
+    cat_type = request.POST.get('type', cat.type)
+    if not name:
+        return JsonResponse({'status': 'error', 'msg': 'Nome é obrigatório'})
+
+    cat.name = name
+    cat.type = cat_type
+    cat.save()
+    return JsonResponse({
+        'status': 'ok',
+        'id': cat.id,
+        'name': cat.name,
+        'type': cat.get_type_display(),
+        'type_raw': cat.type
+    })
+
+
+@login_required
+def category_delete_api(request, pk):
+    """Deletar categoria via AJAX."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'msg': 'Método não permitido'}, status=405)
+
+    try:
+        cat = Category.objects.get(pk=pk, user=request.user, is_default=False)
+    except Category.DoesNotExist:
+        return JsonResponse({'status': 'error', 'msg': 'Categoria não encontrada ou não pode ser deletada'})
+
+    cat.delete()
+    return JsonResponse({'status': 'ok'})

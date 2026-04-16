@@ -1,0 +1,715 @@
+{% extends 'base.html' %}
+{% block title %}Configurações | HM Finanças{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Settings Layout */
+    .settings-container {
+        max-width: 900px;
+    }
+
+    .settings-tabs {
+        display: flex;
+        gap: 4px;
+        background: white;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+        overflow-x: auto;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .settings-tab {
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text-muted);
+        white-space: nowrap;
+        transition: all 0.2s;
+        border: none;
+        background: transparent;
+    }
+
+    .settings-tab:hover {
+        color: var(--text-main);
+        background: #f1f5f9;
+    }
+
+    .settings-tab.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+    }
+
+    .settings-panel {
+        display: none;
+    }
+    .settings-panel.active {
+        display: block;
+    }
+
+    .settings-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+    }
+
+    .settings-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        color: #0f172a;
+    }
+
+    .settings-card p.desc {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin: 0 0 1.5rem 0;
+    }
+
+    .field-group {
+        margin-bottom: 1.25rem;
+    }
+    .field-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 6px;
+    }
+    .field-group input,
+    .field-group textarea,
+    .field-group select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-family: 'Outfit', sans-serif;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+    .field-group input:focus,
+    .field-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .field-group input[readonly] {
+        background: #e2e8f0;
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #2563eb);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: 'Outfit', sans-serif;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+    .btn-secondary {
+        background: white;
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    /* Categories Table */
+    .cat-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .cat-table th {
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--border-color);
+    }
+    .cat-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
+    .cat-table tr:hover td { background: #f8fafc; }
+
+    .badge-income {
+        background: #d1fae5; color: #065f46;
+        padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-expense {
+        background: #fee2e2; color: #991b1b;
+        padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-default {
+        background: #e0e7ff; color: #3730a3;
+        padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+        margin-left: 6px;
+    }
+
+    .cat-action-btn {
+        background: none; border: none; cursor: pointer;
+        color: var(--text-muted); padding: 4px; border-radius: 4px;
+        transition: color 0.2s;
+    }
+    .cat-action-btn:hover { color: var(--text-main); }
+    .cat-action-btn.delete:hover { color: var(--danger); }
+
+    /* Plan Card */
+    .plan-current {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        border-radius: 12px;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    .plan-current .plan-icon {
+        width: 50px; height: 50px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+    }
+    .plan-current .plan-info h4 { margin: 0; font-size: 1.1rem; }
+    .plan-current .plan-info p { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.7; }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+        z-index: 200; backdrop-filter: blur(2px);
+        justify-content: center; align-items: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-box h3 { margin: 0 0 1rem; }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid #f1f5f9; }
+    .faq-question {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1rem 0; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+        color: var(--text-main);
+    }
+    .faq-answer {
+        display: none; padding: 0 0 1rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;
+    }
+    .faq-item.open .faq-answer { display: block; }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-arrow { transition: transform 0.2s; color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+        .settings-container { padding: 0; }
+        .settings-tabs { flex-wrap: nowrap; gap: 2px; }
+        .settings-tab { padding: 8px 12px; font-size: 0.75rem; }
+        .settings-card { padding: 1.25rem; }
+        .plan-current { flex-direction: column; text-align: center; }
+        .btn-row { flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="topbar">
+        <div class="page-title">
+            <h1>Configurações</h1>
+            <p>Gerencie sua loja, categorias, plano e perfil</p>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="settings-tabs" role="tablist">
+        <button class="settings-tab active" onclick="switchTab('store')" role="tab">🏪 Minha Loja</button>
+        <button class="settings-tab" onclick="switchTab('categories')" role="tab">📁 Categorias</button>
+        <button class="settings-tab" onclick="switchTab('plan')" role="tab">💳 Plano</button>
+        <button class="settings-tab" onclick="switchTab('profile')" role="tab">👤 Meu Perfil</button>
+        <button class="settings-tab" onclick="switchTab('help')" role="tab">❓ Ajuda</button>
+    </div>
+
+    <!-- =====================
+         TAB: MINHA LOJA
+         ===================== -->
+    <div id="tab-store" class="settings-panel active">
+        <div class="settings-card">
+            <h3>Dados da Loja</h3>
+            <p class="desc">Informações básicas do seu estabelecimento comercial.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_store">
+
+                <div class="field-group">
+                    <label for="id_name">Nome da Loja *</label>
+                    <input type="text" id="id_name" name="name" value="{{ store_form.initial.name|default:store.name|default:'' }}" placeholder="ex: Mercearia do João" required maxlength="200">
+                </div>
+
+                <div class="field-group">
+                    <label for="id_cnpj">CNPJ</label>
+                    <input type="text" id="id_cnpj" name="cnpj" value="{{ store.cnpj|default:'' }}" placeholder="00.000.000/0000-00">
+                </div>
+
+                <div class="field-group">
+                    <label for="id_store_phone">Telefone da Loja</label>
+                    <input type="text" id="id_store_phone" name="phone" value="{{ store.phone|default:'' }}" placeholder="(00) 00000-0000">
+                </div>
+
+                <div class="field-group">
+                    <label for="id_address">Endereço</label>
+                    <textarea id="id_address" name="address" rows="3" placeholder="Rua, número, bairro, cidade - UF, CEP">{{ store.address|default:'' }}</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn-primary">Salvar Dados da Loja</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================
+         TAB: CATEGORIAS
+         ===================== -->
+    <div id="tab-categories" class="settings-panel">
+        <div class="settings-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h3 style="margin-bottom: 0;">Categorias Financeiras</h3>
+                    <p class="desc" style="margin-bottom: 0;">Organize suas entradas e saídas por categoria.</p>
+                </div>
+                <button class="btn-primary" onclick="openCategoryModal()">+ Adicionar</button>
+            </div>
+
+            <table class="cat-table" id="catTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Origem</th>
+                        <th style="width: 80px; text-align: center;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr id="cat-row-{{ cat.id }}">
+                        <td>
+                            <strong>{{ cat.name }}</strong>
+                        </td>
+                        <td>
+                            {% if cat.type == 'income' %}
+                                <span class="badge-income">Entrada</span>
+                            {% else %}
+                                <span class="badge-expense">Saída</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cat.is_default %}
+                                <span class="badge-default">Padrão</span>
+                            {% else %}
+                                Personalizada
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if not cat.is_default %}
+                            <button class="cat-action-btn" onclick="openEditModal({{ cat.id }}, '{{ cat.name }}', '{{ cat.type }}')" title="Editar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="cat-action-btn delete" onclick="deleteCategory({{ cat.id }})" title="Excluir">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                            </button>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            Nenhuma categoria criada. Clique em "+ Adicionar" para começar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- =====================
+         TAB: PLANO & PAGAMENTO
+         ===================== -->
+    <div id="tab-plan" class="settings-panel">
+        <div class="settings-card">
+            <h3>Seu Plano</h3>
+            <p class="desc">Gerencie sua assinatura do HM Finanças.</p>
+
+            <div class="plan-current">
+                <div class="plan-icon">
+                    {% if user.plan == 'pro' %}🚀{% elif user.plan == 'plus' %}⭐{% else %}🆓{% endif %}
+                </div>
+                <div class="plan-info">
+                    <h4>Plano {{ user.get_plan_display }}</h4>
+                    <p>Status: {{ user.get_plan_status_display }} · Desde {{ user.date_joined|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+
+            {% if user.plan != 'pro' %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="border: 2px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">Plus</h4>
+                    <p style="font-size: 1.8rem; font-weight: 700; color: var(--primary); margin: 0;">R$ 29<span style="font-size: 0.85rem; font-weight: 400;">/mês</span></p>
+                    <ul style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; margin-top: 1rem;">
+                        <li>Contas a pagar/receber</li>
+                        <li>Alertas de inadimplência</li>
+                        <li>Relatórios mensais</li>
+                        <li>Custos fixos</li>
+                    </ul>
+                    {% if user.plan == 'free' %}
+                    <a href="{% url 'create_checkout' 'basic' %}" class="btn-primary" style="display: block; text-align: center; margin-top: 1rem; text-decoration: none;">Assinar Plus</a>
+                    {% endif %}
+                </div>
+                <div style="border: 2px solid var(--primary); border-radius: 12px; padding: 1.5rem; position: relative;">
+                    <span style="position: absolute; top: -10px; right: 12px; background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">POPULAR</span>
+                    <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">Pro</h4>
+                    <p style="font-size: 1.8rem; font-weight: 700; color: var(--primary); margin: 0;">R$ 49<span style="font-size: 0.85rem; font-weight: 400;">/mês</span></p>
+                    <ul style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; margin-top: 1rem;">
+                        <li>Tudo do Plus +</li>
+                        <li>DRE simplificado</li>
+                        <li>Exportação CSV/PDF</li>
+                        <li>Análises avançadas</li>
+                    </ul>
+                    <a href="{% url 'create_checkout' 'pro' %}" class="btn-primary" style="display: block; text-align: center; margin-top: 1rem; text-decoration: none;">Assinar Pro</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- =====================
+         TAB: MEU PERFIL
+         ===================== -->
+    <div id="tab-profile" class="settings-panel">
+        <div class="settings-card">
+            <h3>Informações Pessoais</h3>
+            <p class="desc">Atualize seus dados de contato e identificação.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_profile">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="field-group">
+                        <label for="id_first_name">Nome</label>
+                        <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}" placeholder="Seu nome">
+                    </div>
+                    <div class="field-group">
+                        <label for="id_last_name">Sobrenome</label>
+                        <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}" placeholder="Sobrenome">
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label for="id_email">Email</label>
+                    <input type="email" id="id_email" value="{{ user.email }}" readonly>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Para alterar o email, entre em contato com o suporte.</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="field-group">
+                        <label for="id_phone">Telefone</label>
+                        <input type="text" id="id_phone" name="phone" value="{{ user.phone }}" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="field-group">
+                        <label for="id_cpf">CPF</label>
+                        <input type="text" id="id_cpf" name="cpf" value="{{ user.cpf }}" placeholder="000.000.000-00">
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn-primary">Salvar Perfil</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Alterar Senha -->
+        <div class="settings-card">
+            <h3>Alterar Senha</h3>
+            <p class="desc">Mantenha sua conta segura com uma senha forte.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_password">
+
+                <div class="field-group">
+                    <label for="id_current_pw">Senha Atual</label>
+                    <input type="password" id="id_current_pw" name="current_password" required placeholder="••••••••">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="field-group">
+                        <label for="id_new_pw">Nova Senha</label>
+                        <input type="password" id="id_new_pw" name="new_password" required minlength="8" placeholder="Mínimo 8 caracteres">
+                    </div>
+                    <div class="field-group">
+                        <label for="id_confirm_pw">Confirmar Senha</label>
+                        <input type="password" id="id_confirm_pw" name="confirm_password" required placeholder="Repita a nova senha">
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn-primary">Alterar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================
+         TAB: AJUDA & SUPORTE
+         ===================== -->
+    <div id="tab-help" class="settings-panel">
+        <div class="settings-card">
+            <h3>Perguntas Frequentes</h3>
+            <p class="desc">Respostas rápidas para as dúvidas mais comuns.</p>
+
+            <div class="faq-item" onclick="this.classList.toggle('open')">
+                <div class="faq-question">
+                    Como começo a usar o HM Finanças?
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Após criar sua conta, complete o onboarding informando o nome da sua loja. O sistema criará automaticamente as contas e categorias padrão. Depois, comece registrando suas primeiras transações e clientes.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="this.classList.toggle('open')">
+                <div class="faq-question">
+                    Como registro uma venda?
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Acesse o menu "Vendas" na barra lateral e clique em "Nova Venda". Preencha o cliente (opcional), valor total, forma de pagamento e número de parcelas. O sistema gera as parcelas automaticamente.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="this.classList.toggle('open')">
+                <div class="faq-question">
+                    Como cadastro categorias personalizadas?
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Acesse Configurações → Categorias e clique em "+ Adicionar". Defina o nome e o tipo (Entrada ou Saída). As categorias padrão do sistema não podem ser editadas ou excluídas.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="this.classList.toggle('open')">
+                <div class="faq-question">
+                    Como funciona o controle de inadimplência?
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Quando uma venda parcelada é criada, o sistema rastreia automaticamente as parcelas. Parcelas vencidas atualizam o debt total do cliente. Acesse "Inadimplentes" para ver quem está devendo.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="this.classList.toggle('open')">
+                <div class="faq-question">
+                    Posso mudar meu plano depois?
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    Sim! Acesse Configurações → Plano & Pagamento para visualizar os planos disponíveis e fazer upgrade a qualquer momento. O novo plano é ativado imediatamente após o pagamento via Pix.
+                </div>
+            </div>
+        </div>
+
+        <!-- Contato -->
+        <div class="settings-card">
+            <h3>Falar com o Suporte</h3>
+            <p class="desc">Precisa de ajuda? Entre em contato conosco.</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <a href="https://wa.me/5500000000000?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20HM%20Finanças" target="_blank" style="display: flex; align-items: center; gap: 12px; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; text-decoration: none; color: var(--text-main); transition: all 0.2s;">
+                    <div style="width: 44px; height: 44px; background: #25D366; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; flex-shrink: 0;">💬</div>
+                    <div>
+                        <strong style="font-size: 0.9rem;">WhatsApp</strong>
+                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted);">Atendimento rápido</p>
+                    </div>
+                </a>
+                <a href="mailto:suporte@hmfinancas.com.br" style="display: flex; align-items: center; gap: 12px; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; text-decoration: none; color: var(--text-main); transition: all 0.2s;">
+                    <div style="width: 44px; height: 44px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; flex-shrink: 0;">✉️</div>
+                    <div>
+                        <strong style="font-size: 0.9rem;">Email</strong>
+                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted);">suporte@hmfinancas.com.br</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Criar/Editar Categoria -->
+<div class="modal-overlay" id="catModal">
+    <div class="modal-box">
+        <h3 id="catModalTitle">Nova Categoria</h3>
+        <form id="catForm" onsubmit="submitCategory(event)">
+            {% csrf_token %}
+            <input type="hidden" id="catEditId" value="">
+
+            <div class="field-group">
+                <label for="catName">Nome da Categoria *</label>
+                <input type="text" id="catName" name="name" required maxlength="50" placeholder="ex: Fornecedor, Materiais">
+            </div>
+
+            <div class="field-group">
+                <label for="catType">Tipo</label>
+                <select id="catType" name="type">
+                    <option value="expense">Saída (Despesa)</option>
+                    <option value="income">Entrada (Receita)</option>
+                </select>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn-primary">Salvar</button>
+                <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tab switching
+    function switchTab(tabId) {
+        document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    // Category Modal
+    function openCategoryModal() {
+        document.getElementById('catModalTitle').textContent = 'Nova Categoria';
+        document.getElementById('catEditId').value = '';
+        document.getElementById('catName').value = '';
+        document.getElementById('catType').value = 'expense';
+        document.getElementById('catModal').classList.add('show');
+    }
+
+    function openEditModal(id, name, type) {
+        document.getElementById('catModalTitle').textContent = 'Editar Categoria';
+        document.getElementById('catEditId').value = id;
+        document.getElementById('catName').value = name;
+        document.getElementById('catType').value = type;
+        document.getElementById('catModal').classList.add('show');
+    }
+
+    function closeCategoryModal() {
+        document.getElementById('catModal').classList.remove('show');
+    }
+
+    function submitCategory(e) {
+        e.preventDefault();
+        const editId = document.getElementById('catEditId').value;
+        const name = document.getElementById('catName').value;
+        const type = document.getElementById('catType').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        let url = editId
+            ? `/settings/category/${editId}/edit/`
+            : '/settings/category/add/';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                location.reload();
+            } else {
+                alert(data.msg || 'Erro ao salvar categoria.');
+            }
+        })
+        .catch(() => alert('Erro de conexão.'));
+    }
+
+    function deleteCategory(id) {
+        if (!confirm('Tem certeza que deseja excluir esta categoria?\nTransações vinculadas não serão excluídas, apenas desvinculadas.')) return;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(`/settings/category/${id}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                document.getElementById('cat-row-' + id).remove();
+            } else {
+                alert(data.msg || 'Erro ao excluir.');
+            }
+        })
+        .catch(() => alert('Erro de conexão.'));
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('catModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCategoryModal();
+    });
+</script>
+{% endblock %}
