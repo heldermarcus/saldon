@@ -183,11 +183,7 @@ def create_checkout(request, plan):
         scheme = request.scheme
         base_url = f"{scheme}://{host}"
         
-        # Em localhost, usar um domínio placeholder válido
-        # (em produção, base_url será o domínio real)
-        if '127.0.0.1' in host or 'localhost' in host:
-            base_url = "https://hmfinancas.com.br"
-        
+        # Use o domínio real para os redirects (mesmo localhost funciona para redirect de browser)        
         return_url = base_url + reverse('subscription')
         completion_url = base_url + reverse('dashboard') + "?upgraded=true"
         
@@ -208,7 +204,9 @@ def create_checkout(request, plan):
         customer_name = user.get_full_name() or user.username or user.email.split('@')[0]
         customer_email = user.email
         customer_phone = getattr(user, 'phone', '') or '(00) 00000-0000'
-        customer_taxid = '000.000.000-00'  # placeholder — em produção, coletar CPF real
+        import re
+        raw_cpf = getattr(user, 'cpf', '') or '07343375580'  # CPF fornecido para testes
+        customer_taxid = re.sub(r'\D', '', raw_cpf)
         
         customer_data = CustomerMetadata(
             name=customer_name,

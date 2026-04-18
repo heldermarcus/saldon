@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}HM Finanças{% endblock %}</title>
+    <title>{% block title %}Evidência Financeira{% endblock %}</title>
     <meta name="description" content="Sistema financeiro simples para lojistas. Controle de caixa, vendas e clientes em um só lugar.">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
@@ -17,15 +17,23 @@
              SIDEBAR (Desktop Only)
              ============================ -->
         <aside class="sidebar">
-            <div class="sidebar-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="sidebar-logo">HM</div>
-                    <div>
-                        <h2 class="sidebar-title">HM Finanças</h2>
-                        <span class="sidebar-subtitle">Gestão Inteligente</span>
-                    </div>
+            <div class="sidebar-header" style="flex-direction: row; align-items: center; gap: 1rem; padding: 1.5rem 1rem;">
+                <div style="display: flex; align-items: flex-end; position: relative;">
+                    <!-- SVG inspirado no Monograma EF com 3 barras -->
+                    <svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Letras Base H/F simplificadas -->
+                        <path d="M15 80 V50 H35 M15 65 H30" stroke="var(--primary)" stroke-width="12" stroke-linecap="square"/>
+                        <path d="M45 80 V50 H65 M45 65 H60" stroke="var(--primary)" stroke-width="12" stroke-linecap="square"/>
+                        <!-- Barras de crescimento saindo do topo -->
+                        <rect x="15" y="40" width="12" height="15" fill="var(--primary)" />
+                        <rect x="45" y="25" width="12" height="30" fill="var(--primary)" />
+                        <rect x="75" y="10" width="12" height="70" fill="var(--primary)" />
+                    </svg>
                 </div>
-
+                <div style="display: flex; flex-direction: column; line-height: 1.1;">
+                    <span style="font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.1rem; color: #E2E8F0; letter-spacing: 0.5px;">EVIDÊNCIA</span>
+                    <span style="font-family: 'Montserrat', sans-serif; font-weight: 500; font-size: 1.05rem; color: #94A3B8; letter-spacing: 0.5px;">FINANCEIRA</span>
+                </div>
             </div>
             
             <nav class="sidebar-nav">
