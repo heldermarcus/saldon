@@ -86,71 +86,95 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                const customerSelect = document.querySelector('#id_customer');
-                const saleSelect = document.querySelector('#id_sale');
-                const saleDiv = document.querySelector('#div_id_sale');
-                const saleInfoCard = document.querySelector('#sale_info_card');
-                const saleDebtValue = document.querySelector('#sale_debt_value');
-                const btnPayTotal = document.querySelector('#btn_pay_total');
-                const amountInput = document.querySelector('#id_amount');
-                let currentSales = [];
+                var customerSelect = document.querySelector('#id_customer');
+                var categorySelect = document.querySelector('#id_category');
+                var saleSelect = document.querySelector('#id_sale');
+                var saleDiv = document.querySelector('#div_id_sale');
+                var saleInfoCard = document.querySelector('#sale_info_card');
+                var saleDebtValue = document.querySelector('#sale_debt_value');
+                var btnPayTotal = document.querySelector('#btn_pay_total');
+                var amountInput = document.querySelector('#id_amount');
+                var currentSales = [];
+                
+                var formSaleValue = '{{ form.sale.value|default_if_none:"" }}';
+                var initialSaleId = (formSaleValue === 'None') ? '' : formSaleValue;
 
-                function updateVendas() {
-                    const customerId = customerSelect.value;
-                    if (!customerId) {
+                function updateVendas(isInitialLoad) {
+                    var customerId = customerSelect.value || 0;
+                    
+                    var categoryText = '';
+                    if (categorySelect && categorySelect.options.length > 0 && categorySelect.selectedIndex >= 0) {
+                        var opt = categorySelect.options[categorySelect.selectedIndex];
+                        if (opt) categoryText = opt.text.toLowerCase();
+                    }
+                    
+                    if (categoryText.indexOf('venda') !== -1 || customerSelect.value || initialSaleId) {
+                        fetch('/ajax/get-customer-sales/' + customerId + '/')
+                            .then(function(response) { return response.json(); })
+                            .then(function(data) {
+                                currentSales = data.sales;
+                                
+                                var currentSelected = isInitialLoad ? initialSaleId : saleSelect.value;
+                                
+                                saleSelect.innerHTML = '<option value="">---------</option>';
+                                
+                                data.sales.forEach(function(sale) {
+                                    var option = document.createElement('option');
+                                    option.value = sale.id;
+                                    option.textContent = sale.desc;
+                                    option.dataset.remaining = sale.remaining;
+                                    if (sale.id == currentSelected) {
+                                        option.selected = true;
+                                    }
+                                    saleSelect.appendChild(option);
+                                });
+
+                                if (data.sales.length > 0 || initialSaleId) {
+                                    saleDiv.style.display = 'block';
+                                    if (currentSelected) {
+                                        saleSelect.dispatchEvent(new Event('change'));
+                                    }
+                                } else {
+                                    saleDiv.style.display = 'none';
+                                    saleInfoCard.style.display = 'none';
+                                }
+                            })
+                            .catch(function(error) {
+                                console.error('Error fetching sales:', error);
+                            });
+                    } else {
                         saleDiv.style.display = 'none';
                         saleInfoCard.style.display = 'none';
-                        return;
                     }
-
-                    fetch(`/financial/ajax/get-customer-sales/${customerId}/`)
-                        .then(response => response.json())
-                        .then(data => {
-                            currentSales = data.sales;
-                            // Limpar options
-                            saleSelect.innerHTML = '<option value="">---------</option>';
-                            
-                            data.sales.forEach(sale => {
-                                const option = document.createElement('option');
-                                option.value = sale.id;
-                                option.textContent = sale.desc;
-                                option.dataset.remaining = sale.remaining;
-                                saleSelect.appendChild(option);
-                            });
-
-                            if (data.sales.length > 0) {
-                                saleDiv.style.display = 'block';
-                            } else {
-                                saleDiv.style.display = 'none';
-                            }
-                        });
                 }
 
-                customerSelect.addEventListener('change', updateVendas);
+                if (customerSelect) {
+                    customerSelect.addEventListener('change', function() { updateVendas(false); });
+                }
+                if (categorySelect) {
+                    categorySelect.addEventListener('change', function() { updateVendas(false); });
+                }
 
-                saleSelect.addEventListener('change', function() {
-                    const selectedSaleId = this.value;
-                    const sale = currentSales.find(s => s.id == selectedSaleId);
-                    
-                    if (sale) {
-                        saleInfoCard.style.display = 'block';
-                        saleDebtValue.textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.remaining);
+                if (saleSelect) {
+                    saleSelect.addEventListener('change', function() {
+                        var selectedSaleId = this.value;
+                        var sale = currentSales.find(function(s) { return s.id == selectedSaleId; });
                         
-                        btnPayTotal.onclick = function() {
-                            amountInput.value = sale.remaining;
-                        };
-                    } else {
-                        saleInfoCard.style.display = 'none';
-                    }
-                });
-
-                // Se já houver um cliente selcionado (edição)
-                if (customerSelect.value && !saleSelect.value) {
-                    updateVendas();
-                } else if (saleSelect.value) {
-                    // Lógica para quando vier preenchido (edição)
-                    saleDiv.style.display = 'block';
+                        if (sale) {
+                            saleInfoCard.style.display = 'block';
+                            saleDebtValue.textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.remaining);
+                            
+                            btnPayTotal.onclick = function() {
+                                amountInput.value = sale.remaining;
+                            };
+                        } else {
+                            saleInfoCard.style.display = 'none';
+                        }
+                    });
                 }
+
+                // Lógica de Inicialização
+                updateVendas(true);
             });
         </script>
 

@@ -89,12 +89,12 @@ class DashboardView(TemplateView):
         context['pie_labels'] = pie_labels
         context['pie_data'] = pie_data
         
-        total_in = Transaction.objects.filter(account=account, type='income', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or 0
+        total_in = Transaction.objects.filter(account=account, type='income', date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         total_out = sum(pie_data) if pie_data != [1] else 0
-        context['lucro_liquido'] = total_in - total_out
+        context['lucro_liquido'] = total_in - Decimal(str(total_out))
         
         customers_with_sales = Sale.objects.filter(store=store).values('customer').distinct().count()
-        context['ticket_medio'] = total_in / customers_with_sales if customers_with_sales > 0 else 0
+        context['ticket_medio'] = total_in / Decimal(customers_with_sales) if customers_with_sales > 0 else Decimal('0.00')
 
         return context
 

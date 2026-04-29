@@ -21,18 +21,9 @@ class TransactionForm(forms.ModelForm):
                 self.fields['account'].queryset = Account.objects.filter(store=store)
                 self.fields['customer'].queryset = Customer.objects.filter(store=store)
                 
-                # Initially, if no customer is selected, show no sales or all open sales?
-                # Better to show no sales or the one already selected (for update)
-                if 'customer' in self.data:
-                    try:
-                        customer_id = int(self.data.get('customer'))
-                        self.fields['sale'].queryset = Sale.objects.filter(customer_id=customer_id).exclude(status='paid')
-                    except (ValueError, TypeError):
-                        pass
-                elif self.instance.pk and self.instance.customer:
-                    self.fields['sale'].queryset = Sale.objects.filter(customer=self.instance.customer).exclude(status='paid')
-                else:
-                    self.fields['sale'].queryset = Sale.objects.none()
+                # Carrega todas as vendas abertas da loja para o queryset, 
+                # pois agora o usuário pode selecionar a venda mesmo sem cliente
+                self.fields['sale'].queryset = Sale.objects.filter(store=store).exclude(status='paid')
 
     def clean(self):
         cleaned_data = super().clean()

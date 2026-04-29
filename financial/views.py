@@ -158,7 +158,7 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
 
         response = super().form_valid(form)
         
-        new_account = self.object.account
+        new_account = old_account.__class__.objects.get(pk=self.object.account_id)
         if self.object.type == 'income':
             new_account.balance += self.object.amount
         elif self.object.type == 'expense':
@@ -223,12 +223,16 @@ def transaction_history_api(request, pk):
 @login_required
 def get_customer_sales(request, customer_id):
     store = request.user.stores.first()
-    sales = Sale.objects.filter(customer_id=customer_id, store=store).exclude(status='paid')
+    if customer_id == 0:
+        sales = Sale.objects.filter(store=store).exclude(status='paid')
+    else:
+        sales = Sale.objects.filter(customer_id=customer_id, store=store).exclude(status='paid')
     data = []
     for s in sales:
+        customer_name = s.customer.name if s.customer else 'Sem cliente'
         data.append({
             'id': s.id,
-            'desc': f"Venda #{s.id} - R$ {s.total_amount} (Pendente: R$ {s.remaining_amount})",
+            'desc': f"Venda #{s.id} ({customer_name}) - Pendente: R$ {s.remaining_amount}",
             'remaining': float(s.remaining_amount)
         })
     return JsonResponse({'sales': data})
