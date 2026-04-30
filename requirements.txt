@@ -10,3 +10,4 @@ djangorestframework
 requests
 reportlab
 abacatepay
+python-dateutil
