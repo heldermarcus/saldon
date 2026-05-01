@@ -1,0 +1,14 @@
+﻿{% extends 'base.html' %}
+{% block title %}Bem-vindo | Saldon{% endblock %}
+
+{% block content %}
+<div class="text-center" style="margin-top: 4rem;">
+    <h1>Saldon</h1>
+    <p>Controle financeiro simples para lojistas do interior.</p>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'account_login' %}" role="button" class="outline">Entrar</a>
+        <a href="{% url 'account_signup' %}" role="button">Criar Conta Grátis</a>
+    </div>
+</div>
+{% endblock %}

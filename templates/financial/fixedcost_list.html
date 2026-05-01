@@ -1,0 +1,36 @@
+﻿{% extends 'base.html' %}
+{% block title %}Custos Fixos | Saldon{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Custos Fixos</h1>
+    <a href="{% url 'fixedcost_add' %}" role="button">+ Novo Custo Fixo</a>
+</header>
+
+<article class="card">
+    <table class="striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Conta</th>
+                <th>Valor</th>
+                <th>Dia Vencimento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cost in fixed_costs %}
+            <tr>
+                <td>{{ cost.name }}</td>
+                <td>{{ cost.account.name }}</td>
+                <td>R$ {{ cost.amount }}</td>
+                <td>{{ cost.due_day }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Nenhum custo fixo cadastrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endblock %}

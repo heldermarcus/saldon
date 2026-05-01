@@ -1,0 +1,23 @@
+﻿{% extends 'base.html' %}
+{% block title %}Configuração Inicial{% endblock %}
+
+{% block content %}
+<article class="card">
+    <header>
+        <h2>Bem-vindo! Vamos configurar sua loja</h2>
+        <p>Leva apenas 30 segundos.</p>
+    </header>
+    
+    <form method="post">
+        {% csrf_token %}
+        <label for="store_name">Nome da sua Loja</label>
+        <input type="text" id="store_name" name="store_name" placeholder="Ex: Mercadinho João, Loja Centro..." required autofocus>
+        
+        <small class="text-muted">Nós criaremos automaticamente sua Conta Pessoal e Conta Loja para você começar a registrar vendas!</small>
+        
+        <div style="margin-top: 1rem;">
+            <button type="submit">Começar a Usar</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

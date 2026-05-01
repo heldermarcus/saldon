@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Saldon{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-title">
+        <h1>Meu Negócio</h1>
+        <p>Visão geral da sua operação financeira — {{ mes_atual }}</p>
+    </div>
+    
+</div>
+
+<!-- Ações Rápidas -->
+<div class="quick-actions">
+    <a href="{% url 'sale_add' %}" class="quick-action-btn income">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        Registrar Venda
+    </a>
+    <a href="{% url 'transaction_add' %}" class="quick-action-btn expense">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Registrar Gasto
+    </a>
+</div>
+    <div class="dashboard-grid">
+        <!-- Saldo Loja -->
+        <article class="dash-card card-dark">
+            <h3 class="dash-card-title">Saldo da Loja</h3>
+            <p class="dash-card-value">R$ {{ account.balance|default:"0.00" }}</p>
+            <p class="dash-card-subtitle">Caixa disponível agora</p>
+        </article>
+        
+        <!-- Quanto posso gastar hoje -->
+        <article class="dash-card card-green">
+            <h3 class="dash-card-title">💡 Quanto posso gastar?</h3>
+            <p class="dash-card-value">R$ {{ can_spend_today|default:"0.00" }}</p>
+            <p class="dash-card-subtitle">Livre após custos fixos e reserva</p>
+        </article>
+
+        <!-- Valor Pendente -->
+        <article class="dash-card card-orange">
+            <h3 class="dash-card-title">Total a Receber</h3>
+            <p class="dash-card-value">R$ {{ total_pending|default:"0.00" }}</p>
+            <p class="dash-card-subtitle">Fiado na praça</p>
+        </article>
+
+        <!-- Clientes -->
+        <article class="dash-card">
+            <h3 class="dash-card-title" style="color: var(--text-muted)">Clientes Ativos</h3>
+            <p class="dash-card-value" style="color: var(--text-main)">{{ total_customers|default:"0" }}</p>
+            <p class="dash-card-subtitle" style="color: var(--text-muted)">Cadastrados na loja</p>
+        </article>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 2rem;">
+        <div class="dash-card" style="padding: 2rem; min-height: 380px; display: flex; flex-direction: column;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-main);">Receita Confirmada (Últimos Meses)</h3>
+            <div style="position: relative; height: 300px; width: 100%; flex-grow: 1;">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="dash-card" style="padding: 2rem; min-height: 380px; display: flex; flex-direction: column;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-main);">Onde gastei este mês</h3>
+            <div style="position: relative; height: 260px; width: 100%; flex-grow: 1; display:flex; justify-content:center; align-items:center;">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
+        <article class="dash-card" style="padding: 1.5rem;">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 500;">
+                Lucro Líquido ({{ mes_atual }})
+            </p>
+            <p style="color: {% if lucro_liquido >= 0 %}var(--success){% else %}var(--danger){% endif %}; font-size: 1.4rem; font-weight: 700; margin: 0;">
+                R$ {{ lucro_liquido|floatformat:2 }}
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0 0;">Entradas − Despesas</p>
+        </article>
+        
+        <article class="dash-card" style="padding: 1.5rem;">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 500;">
+                Ticket Médio
+            </p>
+            <p style="color: var(--text-main); font-size: 1.4rem; font-weight: 700; margin: 0;">
+                R$ {{ ticket_medio|floatformat:2 }}
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0 0;">Por cliente passante</p>
+        </article>
+
+        <article class="dash-card" style="padding: 1.5rem;">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 500;">
+                Referência
+            </p>
+            <p style="color: var(--text-main); font-size: 1.4rem; font-weight: 700; margin: 0;">
+                {{ mes_atual }}
+            </p>
+            <p style="font-size: 0.8rem; color: var(--success); margin: 6px 0 0;">Fechamento contabilizado</p>
+        </article>
+    </div>
+
+    <!-- Inadimplentes -->
+    {% if top_debtors.count > 0 %}
+    <div class="overdue-section" style="margin-top: 2rem;">
+        <div class="overdue-header">
+            <div style="background:#fecaca; padding:6px; border-radius:50%; display:flex; color:#b91c1c;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <div>
+                <h3>Clientes Inadimplentes</h3>
+                <p>{{ top_debtors.count }} pessoas com débito na praça</p>
+            </div>
+            <div class="overdue-total">
+                R$ {{ total_pending|default:"0.00" }} <span style="font-size:0.8rem; font-weight:400; color:#991b1b;">Total pendente</span>
+            </div>
+        </div>
+
+        <div class="overdue-list">
+            {% for debtor in top_debtors %}
+            <div class="overdue-item">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="color: #ef4444; opacity: 0.7;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                    </div>
+                    <div class="overdue-info">
+                        <h4>{{ debtor.name }}</h4>
+                        <p>Contato: {{ debtor.phone|default:"Não informado" }}</p>
+                    </div>
+                </div>
+                <div class="overdue-amount" style="font-weight: 600;">
+                    R$ {{ debtor.total_debt }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div style="margin-top: 2rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 2rem; text-align: center;">
+        <p style="color: #166534; font-weight: 600; font-size: 1.1rem; margin: 0;">🎉 Nenhum cliente inadimplente!</p>
+        <p style="color: #15803d; font-size: 0.85rem; margin: 0.5rem 0 0;">Todas as contas estão em dia. Continue assim.</p>
+    </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Line Chart
+        const ctxLine = document.getElementById('lineChart');
+        if(ctxLine) {
+            new Chart(ctxLine.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: {{ line_labels|safe|default:"[]" }},
+                    datasets: [{
+                        label: 'Receita Confirmada',
+                        data: {{ line_data|safe|default:"[]" }},
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.4 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: "'Outfit', sans-serif", size: 12 } } },
+                        tooltip: { backgroundColor: '#0f172a', cornerRadius: 8, titleFont: { family: "'Outfit', sans-serif" }, bodyFont: { family: "'Outfit', sans-serif" }, padding: 12, callbacks: { label: function(context) { return ' R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2}); } } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: "'Outfit'" } } },
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e2e8f0' }, ticks: { font: { family: "'Outfit'" }, callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); } } }
+                    }
+                }
+            });
+        }
+
+        // Donut Chart
+        const ctxPie = document.getElementById('pieChart');
+        if(ctxPie) {
+            const pieLabels = {{ pie_labels|safe|default:"[]" }};
+            const pieData = {{ pie_data|safe|default:"[]" }};
+            const chartColors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#a855f7', '#06b6d4', '#ec4899', '#f97316'];
+
+            new Chart(ctxPie.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        data: pieData,
+                        backgroundColor: chartColors,
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11, family: "'Outfit', sans-serif" } } },
+                        tooltip: { backgroundColor: '#0f172a', cornerRadius: 8, padding: 10, callbacks: { label: function(context) { let label = context.label || ''; if (label) { label += ': '; } if (context.parsed !== null) { label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed); } return label; } } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
