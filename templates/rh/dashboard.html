@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Desempenho RH | Saldon{% endblock %}
+
+{% block content %}
+<div class="topbar" style="margin-bottom: 2rem;">
+    <div class="page-title">
+        <h1 style="display: flex; align-items: center; gap: 10px;">
+            <a href="{% url 'rh:employee_list' %}" style="color: #94a3b8; text-decoration: none;">&lt;</a>
+            Desempenho - {{ current_month_name|title }}
+        </h1>
+        <p>Acompanhe o volume de vendas por funcionário neste mês.</p>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    {% for stat in employee_performance %}
+    <article class="dash-card" style="padding: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #e0e7ff; color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;">
+                {{ stat.employee.name.0|upper }}
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 600;">{{ stat.employee.name }}</h3>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">{{ stat.employee.role|default:"Sem cargo" }}</p>
+            </div>
+        </div>
+        
+        <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; border: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
+            <div>
+                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Vendas Realizadas</p>
+                <p style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">{{ stat.sales_count }}</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Vendido</p>
+                <p style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--primary); margin-top: 4px;">R$ {{ stat.total_sales|floatformat:2 }}</p>
+            </div>
+        </div>
+    </article>
+    {% empty %}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: white; border-radius: 12px; border: 1px dashed var(--border-color);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" style="margin-bottom: 1rem;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <p style="font-size: 1.1rem; color: var(--text-main); font-weight: 500; margin-bottom: 8px;">Nenhum dado de desempenho</p>
+        <p>Cadastre funcionários e vincule-os a vendas para ver o desempenho.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

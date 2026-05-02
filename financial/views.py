@@ -5,6 +5,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 from django.db.models import Sum, Q
 from django.utils import timezone
 from .models import Transaction, Category, Customer, Sale, SaleInstallment, Payment, Transfer, FixedCost
+from rh.models import Employee
 import datetime
 from django.contrib import messages
 
@@ -348,7 +349,7 @@ class SaleListView(LoginRequiredMixin, ListView):
 class SaleCreateView(LoginRequiredMixin, CreateView):
     model = Sale
     template_name = 'financial/sale_form.html'
-    fields = ['customer', 'total_amount', 'payment_type', 'installments_count', 'sale_date', 'first_due_date', 'notes']
+    fields = ['customer', 'employee', 'total_amount', 'payment_type', 'installments_count', 'sale_date', 'first_due_date', 'notes']
     success_url = reverse_lazy('sale_list')
 
     def form_valid(self, form):
@@ -360,6 +361,7 @@ class SaleCreateView(LoginRequiredMixin, CreateView):
         store = self.request.user.stores.first()
         if store:
             form.fields['customer'].queryset = Customer.objects.filter(store=store)
+            form.fields['employee'].queryset = Employee.objects.filter(store=store)
         return form
 
     def get_initial(self):
@@ -394,11 +396,19 @@ class SaleCreateView(LoginRequiredMixin, CreateView):
 class SaleUpdateView(LoginRequiredMixin, UpdateView):
     model = Sale
     template_name = 'financial/sale_form.html'
-    fields = ['customer', 'total_amount', 'payment_type', 'installments_count', 'sale_date', 'first_due_date', 'notes']
+    fields = ['customer', 'employee', 'total_amount', 'payment_type', 'installments_count', 'sale_date', 'first_due_date', 'notes']
     success_url = reverse_lazy('sale_list')
 
     def get_queryset(self):
         return Sale.objects.filter(store=self.request.user.stores.first())
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        store = self.request.user.stores.first()
+        if store:
+            form.fields['customer'].queryset = Customer.objects.filter(store=store)
+            form.fields['employee'].queryset = Employee.objects.filter(store=store)
+        return form
 
     def get_success_url(self):
         next_url = self.request.GET.get('next')

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Funcionários | RH | Saldon{% endblock %}
+
+{% block content %}
+<div class="topbar" style="margin-bottom: 1.5rem;">
+    <div class="page-title">
+        <h1>Recursos Humanos</h1>
+        <p>Gerencie seus funcionários e vendedores</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'rh:dashboard' %}" class="btn-pro" style="background:#f8fafc; color:#0f172a; border-color:#cbd5e1;">
+            Ver Desempenho
+        </a>
+        <a href="{% url 'rh:employee_create' %}" class="btn-pro" style="background:#0f172a; color:white; border-color:#0f172a;">
+            + Novo Funcionário
+        </a>
+    </div>
+</div>
+
+<div class="customer-list-container" style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1rem 1.5rem;">
+    {% for employee in employees %}
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 1rem 0;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: 600; font-size: 1.2rem;">
+                {{ employee.name.0|upper }}
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 500;">
+                    {{ employee.name }}
+                    {% if not employee.is_active %}
+                        <span style="font-size: 0.7rem; background: #fee2e2; color: #991b1b; padding: 0.2rem 0.5rem; border-radius: 12px; margin-left: 8px;">Inativo</span>
+                    {% endif %}
+                </h3>
+                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                    {{ employee.role|default:"Sem cargo" }} | Tel: {{ employee.phone|default:"-" }}
+                </p>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'rh:employee_update' employee.id %}" class="btn-pro" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; padding: 0.4rem 1rem; font-size: 0.85rem;">
+                Editar
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+        <p>Você não possui nenhum funcionário cadastrado.</p>
+        <a href="{% url 'rh:employee_create' %}" style="color: var(--primary);">Cadastre o primeiro funcionário</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

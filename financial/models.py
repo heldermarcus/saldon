@@ -91,6 +91,7 @@ class Sale(models.Model):
     installments_count = models.IntegerField(default=1, verbose_name="Número de Parcelas")
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, verbose_name="Tipo de Pagamento")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    employee = models.ForeignKey('rh.Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='sales', verbose_name="Vendedor/Funcionário")
     sale_date = models.DateField(verbose_name="Data da Venda")
     first_due_date = models.DateField(verbose_name="Data da Primeira Parcela")
     notes = models.TextField(null=True, blank=True, verbose_name="Observações")
