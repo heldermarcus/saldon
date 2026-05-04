@@ -108,7 +108,35 @@
             </div>
         </aside>
 
+        <div class="sidebar-overlay" onclick="toggleMobileMenu()"></div>
 
+        <!-- ============================
+             BOTTOM NAVIGATION (Mobile Only)
+             ============================ -->
+        <nav class="bottom-nav">
+            <div class="bottom-nav-inner">
+                <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <span>Início</span>
+                </a>
+                <a href="{% url 'transaction_list' %}" class="bottom-nav-item {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span>Caixa</span>
+                </a>
+                <a href="{% url 'sale_list' %}" class="bottom-nav-item {% if 'sale' in request.resolver_match.url_name %}active{% endif %}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    <span>Vendas</span>
+                </a>
+                <a href="{% url 'customer_list' %}" class="bottom-nav-item {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Clientes</span>
+                </a>
+                <a href="#" class="bottom-nav-item" onclick="toggleMobileMenu(); return false;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <span>Menu</span>
+                </a>
+            </div>
+        </nav>
 
         {% endif %}
 
@@ -131,6 +159,11 @@
     </div>
     
 
+    <script>
+        function toggleMobileMenu() {
+            document.body.classList.toggle('sidebar-open');
+        }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

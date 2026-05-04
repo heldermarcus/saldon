@@ -480,9 +480,35 @@ h1, h2, h3, h4, h5, h6, .page-title h1, .dash-card-value {
    MOBILE RESPONSIVE
    ======================================= */
 @media (max-width: 768px) {
-    /* Hide sidebar */
+    /* Off-canvas sidebar */
     .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: -100%;
+        width: 280px;
+        transition: left 0.3s ease;
+        z-index: 1000;
+        display: flex; /* override display: none */
+    }
+
+    body.sidebar-open .sidebar {
+        left: 0;
+    }
+
+    .sidebar-overlay {
         display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+
+    body.sidebar-open .sidebar-overlay {
+        display: block;
     }
 
     /* Show bottom nav */
