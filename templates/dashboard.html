@@ -4,7 +4,7 @@
 {% block content %}
 <div class="topbar">
     <div class="page-title">
-        <h1>Meu Negócio</h1>
+        <h1>{{ account.store.name|default:"Meu Negócio" }}</h1>
         <p>Visão geral da sua operação financeira — {{ mes_atual }}</p>
     </div>
     
