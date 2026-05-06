@@ -9,32 +9,58 @@ from django.http import HttpResponse
 
 from financial.models import Transaction, Sale, Category
 
-def get_base_context(request, title):
+from financial.views import MONTH_FULL
+
+def get_selected_month_year(request):
+    now = timezone.now()
+    month_str = request.GET.get('month')
+    year_str = request.GET.get('year')
+    try:
+        if month_str and year_str:
+            month = int(month_str)
+            year = int(year_str)
+            import datetime
+            target_date = datetime.date(year, month, 1)
+        else:
+            target_date = now.date().replace(day=1)
+    except ValueError:
+        target_date = now.date().replace(day=1)
+    return target_date
+
+def get_base_context(request, title, target_date=None):
+    if not target_date:
+        target_date = timezone.now().date()
+    now_year = timezone.now().year
+    
     return {
         'page_title': title,
-        'current_month': timezone.now().strftime('%B/%Y').capitalize(),
+        'current_month': f"{MONTH_FULL.get(target_date.month, '')} / {target_date.year}",
+        'selected_month': target_date.month,
+        'selected_year': target_date.year,
+        'month_choices': [{'value': i, 'label': MONTH_FULL.get(i, str(i))} for i in range(1, 13)],
+        'year_choices': [now_year - i for i in range(5, -2, -1)], # Past 5 years + next 1
     }
 
 def reports_monthly_view(request):
     """Relatório Mensal - Vendas vs Gastos com gráficos e detalhamento"""
-    now = timezone.now()
-    first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    _, last_day_num = calendar.monthrange(now.year, now.month)
-    last_day = now.replace(day=last_day_num, hour=23, minute=59, second=59)
+    target_date = get_selected_month_year(request)
+    first_day = target_date.replace(day=1)
+    _, last_day_num = calendar.monthrange(target_date.year, target_date.month)
+    last_day = target_date.replace(day=last_day_num)
 
     # Pegar as vendas do mês (pela data da venda `sale_date`)
     sales_total = Sale.objects.filter(
         store__user=request.user,
-        sale_date__gte=first_day.date(),
-        sale_date__lte=last_day.date()
+        sale_date__gte=first_day,
+        sale_date__lte=last_day
     ).aggregate(total=Sum('total_amount'))['total'] or 0
 
     # Pegar despesas do mês (`date`)
     expenses_total = Transaction.objects.filter(
         account__store__user=request.user,
         type='expense',
-        date__gte=first_day.date(),
-        date__lte=last_day.date()
+        date__gte=first_day,
+        date__lte=last_day
     ).aggregate(total=Sum('amount'))['total'] or 0
 
     net_result = sales_total - expenses_total
@@ -44,11 +70,11 @@ def reports_monthly_view(request):
     expenses_by_cat = Transaction.objects.filter(
         account__store__user=request.user,
         type='expense',
-        date__gte=first_day.date(),
-        date__lte=last_day.date()
+        date__gte=first_day,
+        date__lte=last_day
     ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
 
-    context = get_base_context(request, "Relatório Mensal")
+    context = get_base_context(request, "Relatório Mensal", target_date)
     context.update({
         'sales_total': sales_total,
         'expenses_total': expenses_total,
@@ -104,36 +130,39 @@ def reports_cash_flow_view(request):
 
 def reports_dre_view(request):
     """DRE Simplificado - Receitas, Custos, Lucro Bruto, OP e Líquido"""
-    now = timezone.now()
-    first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).date()
+    target_date = get_selected_month_year(request)
+    first_day = target_date.replace(day=1)
+    _, last_day_num = calendar.monthrange(target_date.year, target_date.month)
+    last_day = target_date.replace(day=last_day_num)
     
     # Receita Bruta = Vendas do período
     sales = Sale.objects.filter(
         store__user=request.user,
-        sale_date__gte=first_day
+        sale_date__gte=first_day,
+        sale_date__lte=last_day
     ).aggregate(total=Sum('total_amount'))['total'] or 0
 
-    # Despesas = Tudo classificado como expense
-    # Para fim didático da DRE, vamos separar "Custo do Produto" x "Despesa Operacional"
-    # Na ausência de um campo explícito de CPV, vamos classificar categorias que tenham a palavra "estoque", "fornecedor" ou "produto" como CPV.
+    # CPV
     cpv_amount = Transaction.objects.filter(
         account__store__user=request.user,
         type='expense',
         date__gte=first_day,
+        date__lte=last_day,
         category__name__icontains='fornecedor'
     ).aggregate(total=Sum('amount'))['total'] or 0
 
     op_expenses = Transaction.objects.filter(
         account__store__user=request.user,
         type='expense',
-        date__gte=first_day
+        date__gte=first_day,
+        date__lte=last_day
     ).exclude(category__name__icontains='fornecedor').aggregate(total=Sum('amount'))['total'] or 0
 
     lucro_bruto = sales - cpv_amount
     lucro_operacional = lucro_bruto - op_expenses
     lucro_liquido = lucro_operacional # S/ impostos ou outras despesas por enquanto
 
-    context = get_base_context(request, "DRE Simplificado")
+    context = get_base_context(request, "DRE Simplificado", target_date)
     context.update({
         'receita_bruta': sales,
         'cpv': cpv_amount,

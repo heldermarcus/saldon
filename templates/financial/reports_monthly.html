@@ -46,6 +46,20 @@
         <div>
             <h1>{{ page_title }}</h1>
             <p style="color: var(--text-muted);">Comparação de receitas e gastos em <strong>{{ current_month }}</strong></p>
+            
+            <form method="GET" style="display: flex; gap: 8px; margin-top: 10px;">
+                <select name="month" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: white;">
+                    {% for m in month_choices %}
+                        <option value="{{ m.value }}" {% if m.value == selected_month %}selected{% endif %}>{{ m.label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="year" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: white;">
+                    {% for y in year_choices %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;">Filtrar</button>
+            </form>
         </div>
         <div>
             <a href="{% url 'reports_export_csv' %}" class="btn" style="background: white; border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; text-decoration: none; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
