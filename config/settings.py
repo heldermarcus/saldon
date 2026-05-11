@@ -33,8 +33,13 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-2f4*f5#@(9!q0k$9!h*+$$jn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
+import os
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+if 'RENDER_EXTERNAL_HOSTNAME' in os.environ:
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
+# Confia no proxy reverso do Render (para o HTTPS não entrar em loop infinito)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
@@ -152,6 +157,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Security: Trusted origins for CSRF (necessário para HTTPS em produção)
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+if 'RENDER_EXTERNAL_HOSTNAME' in os.environ:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}")
 
 
 # Default primary key field type
