@@ -23,5 +23,6 @@ urlpatterns = [
     path('', include('core.urls')),
     path('', include('financial.urls')),
     path('rh/', include('rh.urls')),
+    path('whatsapp/', include('whatsapp.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]

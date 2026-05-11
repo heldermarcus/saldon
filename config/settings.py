@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'core',
     'financial',
     'rh',
+    'whatsapp',
 ]
 
 MIDDLEWARE = [

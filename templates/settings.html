@@ -273,6 +273,7 @@
     <div class="settings-tabs" role="tablist">
         <button class="settings-tab active" onclick="switchTab('store')" role="tab">🏪 Minha Loja</button>
         <button class="settings-tab" onclick="switchTab('categories')" role="tab">📁 Categorias</button>
+        <button class="settings-tab" onclick="switchTab('whatsapp')" role="tab">💬 Integração WhatsApp</button>
         <button class="settings-tab" onclick="switchTab('profile')" role="tab">👤 Meu Perfil</button>
         <button class="settings-tab" onclick="switchTab('help')" role="tab">❓ Ajuda</button>
     </div>
@@ -386,6 +387,38 @@
     <!-- =====================
          TAB: PLANO & PAGAMENTO
          ===================== -->
+
+    <!-- =====================
+         TAB: WHATSAPP
+         ===================== -->
+    <div id="tab-whatsapp" class="settings-panel">
+        <div class="settings-card" style="text-align: center;">
+            <h3>Conectar WhatsApp</h3>
+            <p class="desc">Acesse o sistema e registre vendas diretamente pelo seu WhatsApp.</p>
+            
+            <div id="wpp-status-container" style="margin: 2rem 0;">
+                <div class="wpp-status-badge" id="wpp-badge" style="display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; background: #e2e8f0; color: #475569; margin-bottom: 1rem;">
+                    Verificando status...
+                </div>
+                
+                <div id="wpp-qrcode-box" style="display: none; padding: 1rem; border: 1px dashed var(--border-color); border-radius: 12px; max-width: 300px; margin: 0 auto; background: #f8fafc;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Escaneie o QR Code abaixo com o WhatsApp do seu negócio:</p>
+                    <img id="wpp-qrcode-img" src="" alt="QR Code WhatsApp" style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+                
+                <div id="wpp-connected-box" style="display: none; padding: 1.5rem; background: #d1fae5; border-radius: 12px; max-width: 400px; margin: 0 auto;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div>
+                    <h4 style="color: #065f46; margin: 0 0 0.5rem 0;">WhatsApp Conectado!</h4>
+                    <p style="color: #064e3b; font-size: 0.85rem; margin: 0;">Seu número <strong id="wpp-number"></strong> já está integrado. Envie uma mensagem para testar.</p>
+                </div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2rem; text-align: left; background: #f8fafc; padding: 1.5rem; border-radius: 12px;">
+                <h4 style="margin: 0 0 0.5rem 0;">Como funciona?</h4>
+                <p style="margin: 0;">Você conecta o WhatsApp da sua loja no nosso sistema. Depois disso, você pode mandar mensagens pelo seu próprio celular (ex: <i>"Vendi uma camisa M por 50 reais no pix"</i>) e o nosso robô vai ler, entender e registrar a venda automaticamente no seu fluxo de caixa!</p>
+            </div>
+        </div>
+    </div>
 
     <!-- =====================
          TAB: MEU PERFIL
@@ -655,5 +688,72 @@
     document.getElementById('catModal').addEventListener('click', function(e) {
         if (e.target === this) closeCategoryModal();
     });
+
+    // ==========================================
+    // WHATSAPP INTEGRATION LOGIC
+    // ==========================================
+    let wppPollingInterval = null;
+    const storeId = "{{ store.id }}";
+
+    function checkWhatsAppStatus() {
+        if (!storeId || storeId === 'None') return;
+        
+        fetch(`/whatsapp/api/status/${storeId}/`)
+            .then(res => res.json())
+            .then(data => {
+                const badge = document.getElementById('wpp-badge');
+                const qrBox = document.getElementById('wpp-qrcode-box');
+                const qrImg = document.getElementById('wpp-qrcode-img');
+                const connectedBox = document.getElementById('wpp-connected-box');
+                const numberText = document.getElementById('wpp-number');
+
+                if (data.status === 'CONNECTED') {
+                    badge.style.background = '#d1fae5';
+                    badge.style.color = '#065f46';
+                    badge.textContent = '🟢 Conectado';
+                    qrBox.style.display = 'none';
+                    connectedBox.style.display = 'block';
+                    if (data.number) numberText.textContent = data.number;
+                    
+                    // Para o polling se já conectou
+                    if (wppPollingInterval) clearInterval(wppPollingInterval);
+                } 
+                else if (data.status === 'QRCODE') {
+                    badge.style.background = '#fef08a';
+                    badge.style.color = '#854d0e';
+                    badge.textContent = '⏳ Aguardando Leitura';
+                    connectedBox.style.display = 'none';
+                    qrBox.style.display = 'block';
+                    if (data.qr_code_base64) {
+                        qrImg.src = data.qr_code_base64;
+                    }
+                }
+                else {
+                    badge.style.background = '#fee2e2';
+                    badge.style.color = '#991b1b';
+                    badge.textContent = '🔴 Desconectado';
+                    qrBox.style.display = 'none';
+                    connectedBox.style.display = 'none';
+                }
+            })
+            .catch(err => console.error("Erro ao buscar status do WhatsApp:", err));
+    }
+
+    // Interceptar a troca de abas para iniciar/parar o polling
+    const originalSwitchTab = switchTab;
+    switchTab = function(tabId) {
+        originalSwitchTab(tabId);
+        if (tabId === 'whatsapp') {
+            checkWhatsAppStatus();
+            if (!wppPollingInterval) {
+                wppPollingInterval = setInterval(checkWhatsAppStatus, 4000); // Poll a cada 4s
+            }
+        } else {
+            if (wppPollingInterval) {
+                clearInterval(wppPollingInterval);
+                wppPollingInterval = null;
+            }
+        }
+    };
 </script>
 {% endblock %}
