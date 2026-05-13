@@ -24,7 +24,7 @@
                 <td>{{ customer.phone|default:"-" }}</td>
                 <td class="text-danger">R$ {{ customer.total_debt }}</td>
                 <td>
-                    <small class="text-muted">Cobrança Manual</small>
+                    <a href="{% url 'transaction_add' %}?customer={{ customer.id }}&amount={{ customer.total_debt }}" class="btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; text-decoration: none; border-radius: 20px;">Debitar Valor</a>
                 </td>
             </tr>
             {% empty %}
